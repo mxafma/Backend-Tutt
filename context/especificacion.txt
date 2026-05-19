@@ -1,0 +1,397 @@
+Especificación Técnica Backend MVP
+Sistema de Compras para Verdulería
+Documento preparado para generación de backend con Spring Boot
+Versión: 1.0 | Alcance: MVP backend | Stack: Spring Boot + REST API + JWT + base de datos relacional
+1. Objetivo del backend
+Crear el backend central de un sistema digital de órdenes de compra para una verdulería que actualmente trabaja con una aplicación básica en Python, documentos impresos y planillas Excel.
+El backend debe exponer una API REST que permita a una app Android y a una aplicación web gestionar órdenes de compra, productos, proveedores, compras externas, recepción de mercadería, cálculo de precios sugeridos, reportes básicos y sincronización offline.
+2. Alcance del MVP backend
+2.1 Incluido
+Autenticación con JWT y control por roles.
+Gestión básica de usuarios.
+Gestión de productos, categorías y proveedores.
+Creación y edición de órdenes de compra.
+Flujo de estados de la orden: borrador, lista para comprar, en compra, comprada, recibida, cerrada y cancelada.
+Detalle de orden con productos, formato, cantidades, costos, factura, comentarios y estado del producto.
+Registro de productos agregados en el mercado.
+Recepción de mercadería y corrección de datos.
+Cálculo de precios sugeridos.
+Compras externas recibidas en el local.
+Pendientes de compra registrados durante el día.
+Reportes básicos administrativos.
+Exportación de orden a Excel.
+Endpoints mínimos para sincronización offline desde Android.
+2.2 Fuera del MVP
+Integración automática con Eleventa.
+Stock real.
+Merma exacta.
+Gráficos avanzados.
+Adjuntar fotos de documentos.
+Notificaciones avanzadas.
+Comparación entre precio sugerido y precio real vendido.
+Auditoría completa de cada campo modificado.
+3. Arquitectura técnica recomendada
+Componente
+Decisión
+Lenguaje
+Java 21 o Java 17 LTS
+Framework
+Spring Boot
+API
+REST JSON
+Base de datos
+PostgreSQL recomendado; MySQL aceptable
+Seguridad
+Spring Security + JWT
+Persistencia
+Spring Data JPA / Hibernate
+Documentación API
+SpringDoc OpenAPI / Swagger
+Exportación Excel
+Apache POI
+Arquitectura inicial
+Monolito modular, no microservicios para el MVP
+Estructura modular sugerida del backend:
+src/main/java/com/empresa/verduleria/
+  auth/
+  usuarios/
+  productos/
+  categorias/
+  proveedores/
+  ordenes/
+  comprasexternas/
+  pendientes/
+  precios/
+  reportes/
+  sync/
+  exportacion/
+  shared/
+4. Roles y permisos
+Rol
+Permisos principales
+ADMIN
+Acceso total: usuarios, productos, proveedores, órdenes, compras externas, reportes, historial, correcciones y eliminación.
+CREADOR_OC
+Crear y editar órdenes antes de la compra. Agregar productos solicitados y confirmar orden lista para comprar.
+COMPRADOR
+Ver solo la orden activa del día, iniciar compra, completar datos reales, agregar productos, marcar no comprado y finalizar compra.
+5. Estados y enumeraciones
+5.1 Estado de orden
+BORRADOR
+LISTA_PARA_COMPRAR
+EN_COMPRA
+COMPRADA
+RECIBIDA
+CERRADA
+CANCELADA
+5.2 Estado de producto en orden
+PENDIENTE
+COMPRADO
+COMPRA_PARCIAL
+NO_COMPRADO
+AGREGADO_EN_MERCADO
+5.3 Otros enums sugeridos
+TipoCompra: MERCADO, PROVEEDOR_LOCAL, COMPRA_PUNTUAL, INSUMO
+FormaPago: EFECTIVO, TRANSFERENCIA, TARJETA, CREDITO, PAGO_POSTERIOR
+EstadoPago: PAGADA, PENDIENTE, PAGO_PARCIAL
+EstadoPendienteCompra: PENDIENTE, AGREGADO_A_ORDEN, DESCARTADO
+EstadoSync: PENDIENTE_SYNC, SINCRONIZADO, ERROR_SYNC
+6. Modelo de datos inicial
+Las entidades pueden ajustarse durante el desarrollo, pero este modelo debe usarse como base inicial del MVP.
+Usuario
+id
+nombre
+email
+passwordHash
+rol
+activo
+creadoEn
+actualizadoEn
+Producto
+id
+codigoBarras
+nombre
+categoriaId
+margenRecomendado
+activo
+creadoEn
+actualizadoEn
+Categoria
+id
+nombre
+activo
+Proveedor
+id
+nombre
+rut
+telefono
+direccion
+formaPagoHabitual
+activo
+creadoEn
+actualizadoEn
+OrdenCompra
+id
+fechaCreacion
+fechaCompraPlanificada
+fechaCompraReal
+creadorId
+compradorAsignadoId
+proveedorId
+lugarCompra
+tipoCompra
+estado
+observaciones
+totalEstimado
+totalReal
+creadoEn
+actualizadoEn
+DetalleOrdenCompra
+id
+ordenCompraId
+productoId
+nombreProductoLibre
+codigoBarras
+formato
+cantidadSolicitada
+cantidadComprada
+cantidadInterna
+unidadInterna
+costoTotal
+costoUnitario
+tieneFactura
+tipoPago
+estadoProducto
+comentario
+precioSugerido
+margenUsado
+creadoEn
+actualizadoEn
+CompraExterna
+id
+proveedorId
+fecha
+tipoCompra
+estadoPago
+formaPago
+observaciones
+total
+creadoPorId
+creadoEn
+DetalleCompraExterna
+id
+compraExternaId
+productoId
+formato
+cantidadComprada
+cantidadInterna
+costoTotal
+costoUnitario
+tieneFactura
+comentario
+precioSugerido
+PendienteCompra
+id
+productoId
+nombreProductoLibre
+cantidadSugerida
+formato
+comentario
+creadoPorId
+fecha
+estado
+HistorialOrden
+id
+ordenCompraId
+usuarioId
+accion
+descripcion
+fechaHora
+7. Reglas de negocio del backend
+7.1 Flujo de orden
+BORRADOR -> LISTA_PARA_COMPRAR -> EN_COMPRA -> COMPRADA -> RECIBIDA -> CERRADA
+El comprador debe ver solo la orden activa del día.
+Al iniciar la compra, la orden pasa a EN_COMPRA.
+Al finalizar compra, la orden pasa a COMPRADA.
+Recepción puede corregir cantidades, costos, cantidad interna y comentarios.
+Al cerrar, la orden queda en historial y no debe ser editada por usuarios operativos.
+El admin puede corregir registros si es necesario.
+7.2 Cálculo de precios
+Si tieneFactura = true:
+  costoConsiderado = costoUnitario
+Si tieneFactura = false:
+  costoConsiderado = costoUnitario * 1.19
+precioSugerido = costoConsiderado / (1 - margen)
+margenResultante = ((precioVenta - costoConsiderado) / precioVenta) * 100
+costoUnitario = costoTotal / cantidadInterna
+Redondeo inicial:
+  redondear hacia abajo a la decena más cercana.
+  Ejemplo: 1875 -> 1870
+7.3 Margen
+Margen general inicial: 40%.
+El margen general debe ser configurable.
+Cada producto puede tener margen recomendado propio.
+Si el producto tiene margen propio, usar ese margen como primera sugerencia.
+El usuario de recepción puede modificar el precio sugerido y el sistema debe mostrar el margen resultante.
+8. Endpoints REST sugeridos
+Auth
+POST /api/auth/login
+POST /api/auth/register
+GET  /api/auth/me
+Usuarios
+GET    /api/usuarios
+GET    /api/usuarios/{id}
+POST   /api/usuarios
+PUT    /api/usuarios/{id}
+DELETE /api/usuarios/{id}
+Productos
+GET    /api/productos
+GET    /api/productos/{id}
+POST   /api/productos
+PUT    /api/productos/{id}
+DELETE /api/productos/{id}
+GET    /api/productos/buscar?query=
+Categorías
+GET    /api/categorias
+POST   /api/categorias
+PUT    /api/categorias/{id}
+DELETE /api/categorias/{id}
+Proveedores
+GET    /api/proveedores
+GET    /api/proveedores/{id}
+POST   /api/proveedores
+PUT    /api/proveedores/{id}
+DELETE /api/proveedores/{id}
+Órdenes de compra
+GET    /api/ordenes
+GET    /api/ordenes/{id}
+GET    /api/ordenes/activa
+POST   /api/ordenes
+PUT    /api/ordenes/{id}
+DELETE /api/ordenes/{id}
+Estados de orden
+POST /api/ordenes/{id}/marcar-lista
+POST /api/ordenes/{id}/iniciar-compra
+POST /api/ordenes/{id}/finalizar-compra
+POST /api/ordenes/{id}/recepcionar
+POST /api/ordenes/{id}/cerrar
+POST /api/ordenes/{id}/cancelar
+Detalle de orden
+GET    /api/ordenes/{ordenId}/detalles
+POST   /api/ordenes/{ordenId}/detalles
+PUT    /api/ordenes/{ordenId}/detalles/{detalleId}
+DELETE /api/ordenes/{ordenId}/detalles/{detalleId}
+Acciones del comprador
+PUT  /api/ordenes/{ordenId}/detalles/{detalleId}/comprar
+PUT  /api/ordenes/{ordenId}/detalles/{detalleId}/no-comprado
+POST /api/ordenes/{ordenId}/detalles/agregar-en-mercado
+Recepción
+GET  /api/ordenes/{id}/recepcion
+PUT  /api/ordenes/{id}/recepcion/detalles/{detalleId}
+POST /api/ordenes/{id}/recepcion/finalizar
+Precios
+POST /api/precios/calcular
+POST /api/ordenes/{id}/calcular-precios
+PUT  /api/ordenes/{id}/detalles/{detalleId}/precio-sugerido
+Pendientes
+GET    /api/pendientes
+POST   /api/pendientes
+PUT    /api/pendientes/{id}
+DELETE /api/pendientes/{id}
+POST   /api/pendientes/{id}/agregar-a-orden/{ordenId}
+Compras externas
+GET    /api/compras-externas
+GET    /api/compras-externas/{id}
+POST   /api/compras-externas
+PUT    /api/compras-externas/{id}
+DELETE /api/compras-externas/{id}
+POST   /api/compras-externas/{id}/cerrar
+Reportes básicos
+GET /api/reportes/gasto-diario?fecha=
+GET /api/reportes/compras-dia?fecha=
+GET /api/reportes/compras-factura?desde=&hasta=
+GET /api/reportes/productos-no-comprados?desde=&hasta=
+GET /api/reportes/cantidad-comprada-producto?productoId=&desde=&hasta=
+GET /api/reportes/pagos-pendientes
+Exportación
+GET /api/ordenes/{id}/exportar-excel
+Sincronización móvil
+GET  /api/sync/bootstrap
+POST /api/sync/ordenes
+POST /api/sync/cambios
+GET  /api/sync/estado
+9. Sincronización offline para Android
+El backend debe soportar un flujo offline básico para que la app Android pueda trabajar sin conexión en el mercado.
+9.1 Bootstrap offline
+Endpoint sugerido: GET /api/sync/bootstrap
+Debe entregar al comprador los datos mínimos para trabajar offline:
+usuario actual
+orden activa
+detalle de la orden
+productos básicos
+categorías
+proveedores/lugares básicos
+parámetros de margen y redondeo
+9.2 Envío de cambios offline
+La app Android guardará cambios localmente y los enviará cuando vuelva internet. El backend debe aceptar cambios por lote.
+POST /api/sync/cambios
+Payload sugerido:
+{
+  "deviceId": "android-001",
+  "usuarioId": 2,
+  "cambios": [
+    {
+      "tipo": "DETALLE_ORDEN_ACTUALIZADO",
+      "entidadId": 15,
+      "fechaLocal": "2026-05-18T10:30:00",
+      "data": { ... }
+    }
+  ]
+}
+9.3 Regla de conflicto MVP
+Si dos usuarios modifican el mismo dato, gana el último cambio recibido/procesado. Esta regla es simple para el MVP. Más adelante puede agregarse resolución de conflictos.
+10. Reportes básicos del MVP
+Gasto diario en compras.
+Compras del día.
+Compras con factura.
+Compras sin factura.
+Pagos pendientes.
+Productos no comprados.
+Cantidad comprada por producto.
+Los reportes solo estarán disponibles para ADMIN en la primera versión. La visualización inicial será mediante tablas simples.
+11. Validaciones mínimas
+No permitir crear orden sin fecha planificada.
+No permitir pasar a LISTA_PARA_COMPRAR si la orden no tiene productos.
+No permitir finalizar compra sin advertir productos pendientes.
+Permitir cerrar con productos pendientes, pero registrando la situación.
+No permitir costos negativos.
+No permitir cantidad interna cero si se debe calcular costo unitario.
+Permitir producto libre cuando el comprador agrega algo no registrado.
+Solo ADMIN puede eliminar registros.
+Comprador solo puede consultar la orden activa.
+12. Orden de desarrollo recomendado para backend
+Crear proyecto Spring Boot, conexión a base de datos y configuración base.
+Implementar seguridad con JWT y roles.
+Crear entidades, repositorios y migraciones iniciales.
+Implementar CRUD de productos, categorías y proveedores.
+Implementar creación y edición de órdenes.
+Implementar detalle de orden y acciones del comprador.
+Implementar flujo de estados de orden.
+Implementar recepción y cierre.
+Implementar cálculo de precios sugeridos.
+Implementar compras externas.
+Implementar pendientes de compra.
+Implementar reportes básicos.
+Implementar exportación Excel.
+Implementar endpoints de sincronización offline.
+Documentar API con Swagger y preparar pruebas con Postman.
+13. Instrucción sugerida para Claude
+Se puede entregar este documento a Claude junto con la siguiente instrucción:
+Lee este documento completo y genera el backend MVP en Spring Boot.
+Primero crea la estructura del proyecto, entidades, enums, DTOs, repositorios,
+servicios y controladores REST. No implementes frontend ni app Android.
+Respeta el alcance MVP: órdenes de compra, productos, proveedores, compras externas,
+pendientes, precios sugeridos, reportes básicos, exportación Excel y endpoints mínimos
+de sincronización offline. Usa JWT para autenticación y roles ADMIN, CREADOR_OC y COMPRADOR.
+Prioriza código simple, mantenible y modular. Si algo no está especificado,
+haz una suposición razonable y déjala comentada.

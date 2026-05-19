@@ -1,0 +1,38 @@
+import { Routes, Route, Link } from 'react-router-dom';
+import { ShoppingCart, PackageOpen, LayoutDashboard } from 'lucide-react';
+import Dashboard from './pages/Dashboard';
+import Productos from './pages/Productos';
+import Ordenes from './pages/Ordenes';
+
+function App() {
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <nav className="bg-green-700 text-white p-4 shadow-md">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="font-bold text-xl flex items-center gap-2">
+            <ShoppingCart /> Verdulería App
+          </div>
+          <ul className="flex gap-4">
+            <li><Link to="/" className="hover:text-green-200 flex items-center gap-1"><LayoutDashboard size={18} /> Dashboard</Link></li>
+            <li><Link to="/productos" className="hover:text-green-200 flex items-center gap-1"><PackageOpen size={18} /> Productos</Link></li>
+            <li><Link to="/ordenes" className="hover:text-green-200 flex items-center gap-1"><ShoppingCart size={18} /> Órdenes</Link></li>
+          </ul>
+        </div>
+      </nav>
+
+      <main className="flex-grow container mx-auto p-4 mt-4">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/productos" element={<Productos />} />
+          <Route path="/ordenes" element={<Ordenes />} />
+        </Routes>
+      </main>
+
+      <footer className="bg-gray-800 text-white text-center p-4">
+        &copy; {new Date().getFullYear()} - MVP Verdulería
+      </footer>
+    </div>
+  );
+}
+
+export default App;
