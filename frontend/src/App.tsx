@@ -1,8 +1,9 @@
 import { Routes, Route, Link } from 'react-router-dom';
-import { ShoppingCart, PackageOpen, LayoutDashboard } from 'lucide-react';
+import { ShoppingCart, PackageOpen, LayoutDashboard, PlusCircle } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Productos from './pages/Productos';
 import Ordenes from './pages/Ordenes';
+import CrearOrden from './pages/CrearOrden';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
             <li><Link to="/" className="hover:text-green-200 flex items-center gap-1"><LayoutDashboard size={18} /> Dashboard</Link></li>
             <li><Link to="/productos" className="hover:text-green-200 flex items-center gap-1"><PackageOpen size={18} /> Productos</Link></li>
             <li><Link to="/ordenes" className="hover:text-green-200 flex items-center gap-1"><ShoppingCart size={18} /> Órdenes</Link></li>
+            <li><Link to="/ordenes/nueva" className="bg-green-800 px-3 py-1 rounded-md hover:bg-green-900 flex items-center gap-1"><PlusCircle size={18} /> Nueva Orden</Link></li>
           </ul>
         </div>
       </nav>
@@ -25,6 +27,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/productos" element={<Productos />} />
           <Route path="/ordenes" element={<Ordenes />} />
+          <Route path="/ordenes/nueva" element={<CrearOrden />} />
         </Routes>
       </main>
 
