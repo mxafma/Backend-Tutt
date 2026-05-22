@@ -23,6 +23,8 @@ public class OrdenCompra {
 
     private String observaciones;
 
+    private String encargadoCompra;
+
     @OneToMany(mappedBy = "orden", cascade = CascadeType.ALL)
     private List<DetalleOrden> detalles;
 }

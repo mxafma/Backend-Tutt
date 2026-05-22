@@ -60,6 +60,7 @@ export interface OrdenCompra {
   creadorNombre?: string;
   compradorAsignadoId?: number | null;
   compradorAsignadoNombre?: string | null;
+  encargadoCompra?: string;
   proveedorId?: number | null;
   proveedorNombre?: string | null;
   lugarCompra?: string;
