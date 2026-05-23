@@ -368,6 +368,12 @@ export default function OrdenDetalle() {
       <div className="flex flex-wrap gap-3 justify-end">
         {orden.estado === 'BORRADOR' && (
           <>
+            <Link
+              to={`/ordenes/${orden.id}/editar`}
+              className="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-5 py-2.5 rounded-lg hover:bg-gray-50 font-semibold transition-colors"
+            >
+              <Pencil size={18} /> Editar Orden
+            </Link>
             <button
               onClick={() => cambiarEstado('LISTA_PARA_COMPRAR')}
               className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 font-semibold transition-colors"
@@ -387,6 +393,12 @@ export default function OrdenDetalle() {
 
         {orden.estado === 'LISTA_PARA_COMPRAR' && (
           <>
+            <Link
+              to={`/ordenes/${orden.id}/editar`}
+              className="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-5 py-2.5 rounded-lg hover:bg-gray-50 font-semibold transition-colors"
+            >
+              <Pencil size={18} /> Editar Orden
+            </Link>
             <Link
               to={`/compra/${orden.id}`}
               className="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 font-semibold transition-colors"

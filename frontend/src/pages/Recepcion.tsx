@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { OrdenCompra } from '../types';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Plus } from 'lucide-react';
+
+const FORMATOS_SUGERIDOS = ['Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
 
 const redondearDecena = (valor: number): number => Math.floor(valor / 10) * 10;
 
@@ -63,6 +65,14 @@ export default function Recepcion() {
   const [loading, setLoading] = useState(true);
   const [edits, setEdits] = useState<Record<string, DetalleRecepcion>>({});
   const [guardando, setGuardando] = useState(false);
+  const [mostrarAgregar, setMostrarAgregar] = useState(false);
+  const [nuevoItem, setNuevoItem] = useState({
+    nombre: '',
+    formato: 'Caja',
+    cantidadComprada: 1,
+    costoTotal: 0,
+    factura: false,
+  });
 
   useEffect(() => {
     fetchOrden();
@@ -131,6 +141,51 @@ export default function Recepcion() {
           : oldEdit.precioFinalEditado;
       return { ...prev, [key]: { ...newEdit, precioFinalEditado } };
     });
+  };
+
+  const agregarProducto = async () => {
+    if (!nuevoItem.nombre.trim()) {
+      alert('Ingresa el nombre del producto.');
+      return;
+    }
+    try {
+      await api.post(`/compras/ordenes/${id}/agregar-producto`, {
+        producto: { nombre: nuevoItem.nombre },
+        nombreProductoSnapshot: nuevoItem.nombre,
+        formato: nuevoItem.formato,
+        cantidadSolicitada: nuevoItem.cantidadComprada,
+        cantidadComprada: nuevoItem.cantidadComprada,
+        costoTotal: nuevoItem.costoTotal,
+        factura: nuevoItem.factura,
+        estadoProducto: 'COMPRADO',
+        agregadoEnMercado: true,
+      });
+      const res = await api.get(`/ordenes/${id}`);
+      const newOrden: OrdenCompra = res.data;
+      setOrden(newOrden);
+      setEdits(prevEdits => {
+        const merged = { ...prevEdits };
+        newOrden.detalles.forEach((d, index) => {
+          const key = String(d.id ?? `idx_${index}`);
+          if (!merged[key]) {
+            merged[key] = {
+              cantidadComprada: d.cantidadComprada ?? d.cantidadSolicitada,
+              costoTotal: d.costoTotal ?? 0,
+              factura: d.factura ?? false,
+              cantidadInterna: d.cantidadInterna ?? 0,
+              margenSugerido: d.margenSugerido ?? 40,
+              precioFinalEditado: d.precioFinalEditado ?? 0,
+            };
+          }
+        });
+        return merged;
+      });
+      setNuevoItem({ nombre: '', formato: 'Caja', cantidadComprada: 1, costoTotal: 0, factura: false });
+      setMostrarAgregar(false);
+    } catch (err) {
+      console.error('Error al agregar producto:', err);
+      alert('Error al agregar el producto.');
+    }
   };
 
   const cerrarRecepcion = async () => {
@@ -470,6 +525,101 @@ export default function Recepcion() {
             </div>
           );
         })}
+      </div>
+
+      {/* Agregar producto olvidado */}
+      <div className="mt-5">
+        {!mostrarAgregar ? (
+          <button
+            onClick={() => setMostrarAgregar(true)}
+            className="w-full py-4 border-2 border-dashed border-blue-300 text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+          >
+            <Plus size={20} /> Agregar producto olvidado
+          </button>
+        ) : (
+          <div className="bg-white rounded-xl border-2 border-blue-300 p-5 shadow-sm">
+            <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
+              <Plus size={18} className="text-blue-600" /> Agregar producto olvidado
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+              <div className="md:col-span-4">
+                <label className="block text-xs text-gray-500 mb-1">Nombre del producto</label>
+                <input
+                  type="text"
+                  value={nuevoItem.nombre}
+                  onChange={e => setNuevoItem(p => ({ ...p, nombre: e.target.value }))}
+                  placeholder="Ej: Pimentón rojo"
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">Formato</label>
+                <select
+                  value={nuevoItem.formato}
+                  onChange={e => setNuevoItem(p => ({ ...p, formato: e.target.value }))}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
+                >
+                  {FORMATOS_SUGERIDOS.map(f => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">Cantidad comprada</label>
+                <input
+                  type="number"
+                  value={nuevoItem.cantidadComprada || ''}
+                  onChange={e => setNuevoItem(p => ({ ...p, cantidadComprada: Number(e.target.value) || 1 }))}
+                  onFocus={e => e.target.select()}
+                  min="1"
+                  className="w-full p-2.5 border border-gray-300 rounded-lg text-center font-semibold focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">Costo total ($)</label>
+                <input
+                  type="number"
+                  value={nuevoItem.costoTotal || ''}
+                  onChange={e => setNuevoItem(p => ({ ...p, costoTotal: Number(e.target.value) || 0 }))}
+                  onFocus={e => e.target.select()}
+                  min="0"
+                  step="100"
+                  className="w-full p-2.5 border border-gray-300 rounded-lg text-center font-semibold focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <button
+                  type="button"
+                  onClick={() => setNuevoItem(p => ({ ...p, factura: !p.factura }))}
+                  className={`w-full p-2.5 rounded-lg border-2 font-semibold text-sm transition-colors ${
+                    nuevoItem.factura
+                      ? 'bg-blue-600 border-blue-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
+                  }`}
+                >
+                  {nuevoItem.factura ? 'Con Factura' : 'Sin Factura'}
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={agregarProducto}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors"
+              >
+                <Plus size={16} /> Agregar
+              </button>
+              <button
+                onClick={() => {
+                  setMostrarAgregar(false);
+                  setNuevoItem({ nombre: '', formato: 'Caja', cantidadComprada: 1, costoTotal: 0, factura: false });
+                }}
+                className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Botones footer */}

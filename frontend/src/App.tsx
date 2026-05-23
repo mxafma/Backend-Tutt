@@ -7,6 +7,7 @@ import CrearOrden from './pages/CrearOrden';
 import OrdenDetalle from './pages/OrdenDetalle';
 import ModoCompra from './pages/ModoCompra';
 import Recepcion from './pages/Recepcion';
+import EditarOrden from './pages/EditarOrden';
 
 function App() {
   return (
@@ -51,6 +52,7 @@ function App() {
           <Route path="/ordenes" element={<Ordenes />} />
           <Route path="/ordenes/nueva" element={<CrearOrden />} />
           <Route path="/ordenes/:id" element={<OrdenDetalle />} />
+          <Route path="/ordenes/:id/editar" element={<EditarOrden />} />
           <Route path="/compra/:id" element={<ModoCompra />} />
           <Route path="/recepcion/:id" element={<Recepcion />} />
         </Routes>

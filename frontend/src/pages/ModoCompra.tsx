@@ -13,6 +13,7 @@ interface DetalleEdit {
   comentario: string;
   estadoProducto: EstadoProductoOrden;
   cantidadInterna: number;
+  formato: string;
 }
 
 export default function ModoCompra() {
@@ -68,6 +69,7 @@ export default function ModoCompra() {
         comentario: d.comentario ?? '',
         estadoProducto: d.estadoProducto ?? 'PENDIENTE',
         cantidadInterna: d.cantidadInterna ?? 0,
+        formato: d.formato ?? 'Caja',
       };
     });
     setEdits(initial);
@@ -116,8 +118,26 @@ export default function ModoCompra() {
         agregadoEnMercado: true,
       });
       const res = await api.get(`/ordenes/${id}`);
-      setOrden(res.data);
-      initEdits(res.data);
+      const newOrden: OrdenCompra = res.data;
+      setOrden(newOrden);
+      setEdits(prevEdits => {
+        const merged = { ...prevEdits };
+        newOrden.detalles.forEach((d, index) => {
+          const key = String(d.id ?? `idx_${index}`);
+          if (!merged[key]) {
+            merged[key] = {
+              cantidadComprada: d.cantidadComprada ?? d.cantidadSolicitada,
+              costoTotal: d.costoTotal ?? 0,
+              factura: d.factura ?? false,
+              comentario: d.comentario ?? '',
+              estadoProducto: d.estadoProducto ?? 'PENDIENTE',
+              cantidadInterna: d.cantidadInterna ?? 0,
+              formato: d.formato ?? 'Caja',
+            };
+          }
+        });
+        return merged;
+      });
       setNuevoItem({ nombre: '', formato: 'Caja', cantidadComprada: 1, costoTotal: 0, factura: false });
       setMostrarAgregar(false);
     } catch (err) {
@@ -126,6 +146,21 @@ export default function ModoCompra() {
   };
 
   const finalizarCompra = async () => {
+    const pendientes = orden!.detalles.filter((d, i) => {
+      const key = String(d.id ?? `idx_${i}`);
+      return (edits[key]?.estadoProducto ?? 'PENDIENTE') === 'PENDIENTE';
+    });
+
+    if (pendientes.length > 0) {
+      const lista = pendientes
+        .map(d => `• ${d.nombreProductoSnapshot || d.producto?.nombre}`)
+        .join('\n');
+      const continuar = confirm(
+        `Hay ${pendientes.length} producto(s) sin marcar estado:\n${lista}\n\n¿Deseas finalizar de todas formas?`
+      );
+      if (!continuar) return;
+    }
+
     if (!confirm('¿Finalizar la compra? Se guardarán todos los datos ingresados.')) return;
 
     setGuardando(true);
@@ -239,6 +274,7 @@ export default function ModoCompra() {
             comentario: '',
             estadoProducto: 'PENDIENTE',
             cantidadInterna: 0,
+            formato: detalle.formato ?? 'Caja',
           };
 
           const borderColor = {
@@ -276,17 +312,25 @@ export default function ModoCompra() {
                     </span>
                   )}
                 </h3>
-                <p className="text-gray-500 text-sm mt-0.5">
-                  <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-xs font-medium">
-                    {detalle.formato}
-                  </span>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <select
+                    value={edit.formato}
+                    onChange={e => updateEdit(key, 'formato', e.target.value)}
+                    className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-xs font-medium border border-gray-200 focus:ring-1 focus:ring-green-400 outline-none"
+                  >
+                    {['Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'].map(f => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                    {!['Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'].includes(edit.formato) && edit.formato && (
+                      <option value={edit.formato}>{edit.formato}</option>
+                    )}
+                  </select>
                   {!detalle.agregadoEnMercado && (
-                    <span className="ml-2 text-gray-500">
-                      Solicitado:{' '}
-                      <strong className="text-gray-700">{detalle.cantidadSolicitada}</strong>
+                    <span className="text-gray-500 text-sm">
+                      Solicitado: <strong className="text-gray-700">{detalle.cantidadSolicitada}</strong>
                     </span>
                   )}
-                </p>
+                </div>
               </div>
 
               {/* Botones de estado */}
@@ -411,7 +455,11 @@ export default function ModoCompra() {
                   {/* Comentario */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-                      Comentario <span className="font-normal normal-case text-gray-400">(opcional)</span>
+                      Comentario{' '}
+                      {detalle.comentario && !detalle.agregadoEnMercado && (
+                        <span className="text-amber-600 normal-case font-normal">← nota del creador</span>
+                      )}
+                      {' '}<span className="font-normal normal-case text-gray-400">(opcional)</span>
                     </label>
                     <input
                       type="text"
