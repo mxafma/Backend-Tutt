@@ -1,4 +1,4 @@
-export type Rol = 'ADMIN' | 'CREADOR_OC' | 'COMPRADOR';
+export type Rol = 'ADMIN' | 'CREADOR_OC' | 'COMPRADOR' | 'RECEPCION';
 
 export interface Usuario {
   id: number;
@@ -26,11 +26,14 @@ export interface Proveedor {
 export interface Producto {
   id?: number;
   nombre: string;
-  descripcion: string;
-  precio: number;
-  stock: number;
+  descripcion?: string;
+  precio?: number;
+  stock?: number;
   categoria?: Categoria;
   proveedor?: Proveedor;
+  formatoHabitual?: string;
+  margenRecomendado?: number;
+  activo?: boolean;
 }
 
 export type EstadoOrden =
@@ -51,6 +54,31 @@ export type EstadoProductoOrden =
 
 export type FormaPago = 'EFECTIVO' | 'TRANSFERENCIA' | 'TARJETA' | 'CREDITO' | 'PAGO_POSTERIOR';
 
+export type TipoCompra = 'MERCADO' | 'PROVEEDOR_LOCAL' | 'INSUMO' | 'GASTO_OPERATIVO';
+
+export type EstadoPago = 'PAGADO' | 'PENDIENTE' | 'PARCIALMENTE_PAGADO';
+
+export interface DetalleOrden {
+  id?: number;
+  producto: Producto;
+  nombreProductoSnapshot?: string;
+  formato?: string;
+  cantidadSolicitada: number;
+  cantidadComprada?: number;
+  costoTotal?: number;
+  factura?: boolean;
+  comentario?: string;
+  estadoProducto?: EstadoProductoOrden;
+  tipoPago?: FormaPago;
+  cantidadInterna?: number;
+  costoUnitarioCalculado?: number;
+  precioSugerido?: number;
+  margenSugerido?: number;
+  precioFinalEditado?: number;
+  margenResultante?: number;
+  agregadoEnMercado?: boolean;
+}
+
 export interface OrdenCompra {
   id?: number;
   fechaCreacion?: string;
@@ -64,17 +92,9 @@ export interface OrdenCompra {
   proveedorId?: number | null;
   proveedorNombre?: string | null;
   lugarCompra?: string;
-  tipoCompra: 'MERCADO' | 'PROVEEDOR_LOCAL';
+  tipoCompra: TipoCompra;
   estado: EstadoOrden;
   observaciones?: string;
-  total: number;
+  total?: number;
   detalles: DetalleOrden[];
-}
-
-export interface DetalleOrden {
-  id?: number;
-  cantidad: number;
-  precioUnitario: number;
-  subtotal?: number;
-  producto: Producto;
 }

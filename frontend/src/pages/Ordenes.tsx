@@ -1,6 +1,25 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
-import { OrdenCompra } from '../types';
+import { OrdenCompra, EstadoOrden } from '../types';
+import { PlusCircle, Eye, ShoppingBag, ClipboardList } from 'lucide-react';
+
+const ESTADO_CONFIG: Record<EstadoOrden, { label: string; bg: string; text: string }> = {
+  BORRADOR:           { label: 'Borrador',           bg: 'bg-gray-100',    text: 'text-gray-600' },
+  LISTA_PARA_COMPRAR: { label: 'Lista para Comprar', bg: 'bg-blue-100',    text: 'text-blue-700' },
+  EN_COMPRA:          { label: 'En Compra',           bg: 'bg-yellow-100',  text: 'text-yellow-700' },
+  COMPRADA:           { label: 'Comprada',            bg: 'bg-purple-100',  text: 'text-purple-700' },
+  RECIBIDA:           { label: 'Recibida',            bg: 'bg-teal-100',    text: 'text-teal-700' },
+  CERRADA:            { label: 'Cerrada',             bg: 'bg-green-100',   text: 'text-green-700' },
+  CANCELADA:          { label: 'Cancelada',           bg: 'bg-red-100',     text: 'text-red-600' },
+};
+
+const TIPO_LABEL: Record<string, string> = {
+  MERCADO:          'Mercado',
+  PROVEEDOR_LOCAL:  'Prov. Local',
+  INSUMO:           'Insumo',
+  GASTO_OPERATIVO:  'Gasto Op.',
+};
 
 export default function Ordenes() {
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([]);
@@ -24,29 +43,115 @@ export default function Ordenes() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Órdenes de Compra</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Órdenes de Compra</h1>
+        <Link
+          to="/ordenes/nueva"
+          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm"
+        >
+          <PlusCircle size={18} /> Nueva Orden
+        </Link>
+      </div>
 
-      <div className="bg-white border rounded shadow-sm overflow-hidden">
-        {loading ? <p className="p-4">Cargando...</p> : (
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-3 border-b">ID Orden</th>
-                <th className="p-3 border-b">Fecha y Hora</th>
-                <th className="p-3 border-b">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ordenes.length === 0 ? <tr><td colSpan={3} className="p-3 text-center">No hay órdenes registradas.</td></tr> : null}
-              {ordenes.map(orden => (
-                <tr key={orden.id} className="hover:bg-gray-50 border-b last:border-0 border-gray-200">
-                  <td className="p-3">#{orden.id}</td>
-                  <td className="p-3">{orden.fechaHora || 'N/A'}</td>
-                  <td className="p-3 font-bold">${orden.total}</td>
+      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+        {loading ? (
+          <p className="p-6 text-center text-gray-500">Cargando órdenes...</p>
+        ) : ordenes.length === 0 ? (
+          <div className="p-12 text-center">
+            <ClipboardList size={48} className="text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 text-lg font-medium">No hay órdenes registradas aún.</p>
+            <Link
+              to="/ordenes/nueva"
+              className="text-green-600 hover:underline mt-2 inline-block text-sm"
+            >
+              Crear la primera orden →
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    ID
+                  </th>
+                  <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Fecha Planificada
+                  </th>
+                  <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Tipo
+                  </th>
+                  <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Proveedor / Lugar
+                  </th>
+                  <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center">
+                    Productos
+                  </th>
+                  <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Estado
+                  </th>
+                  <th className="p-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Acciones
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {ordenes.map(orden => {
+                  const estadoConf = ESTADO_CONFIG[orden.estado] ?? ESTADO_CONFIG.BORRADOR;
+                  return (
+                    <tr
+                      key={orden.id}
+                      className="hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                    >
+                      <td className="p-3 font-mono text-gray-500 text-sm">#{orden.id}</td>
+                      <td className="p-3 text-sm text-gray-700">
+                        {orden.fechaCompraPlanificada || '—'}
+                      </td>
+                      <td className="p-3 text-sm text-gray-600">
+                        {TIPO_LABEL[orden.tipoCompra] ?? orden.tipoCompra}
+                      </td>
+                      <td className="p-3 text-sm text-gray-600">
+                        {orden.proveedorNombre || orden.lugarCompra || (
+                          <span className="text-gray-400 italic">Sin asignar</span>
+                        )}
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full text-sm font-semibold">
+                          {orden.detalles?.length ?? 0}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${estadoConf.bg} ${estadoConf.text}`}
+                        >
+                          {estadoConf.label}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex gap-3 items-center">
+                          <Link
+                            to={`/ordenes/${orden.id}`}
+                            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            <Eye size={15} /> Ver
+                          </Link>
+                          {(orden.estado === 'LISTA_PARA_COMPRAR' ||
+                            orden.estado === 'EN_COMPRA') && (
+                            <Link
+                              to={`/compra/${orden.id}`}
+                              className="flex items-center gap-1 text-sm text-green-700 hover:text-green-900 font-medium"
+                            >
+                              <ShoppingBag size={15} /> Comprar
+                            </Link>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
