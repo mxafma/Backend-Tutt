@@ -22,7 +22,7 @@ public class DataSourceConfig {
             return buildFromIndividualVars();
         }
 
-        return buildFromUrl(databaseUrl);
+        return buildFromUrl(databaseUrl.trim());
     }
 
     private DataSource buildFromUrl(String databaseUrl) throws URISyntaxException {
