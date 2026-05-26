@@ -86,6 +86,10 @@ const sinPassword = (u: MockUsuario) => {
   return datos;
 };
 
+const USE_MOCK = !import.meta.env.VITE_API_URL;
+
+if (USE_MOCK) {
+
 const originalGet = api.get;
 const originalPost = api.post;
 
@@ -384,5 +388,7 @@ api.put = async (url: string, data?: any, _config?: any) => {
 
   return { data: { success: true }, status: 200 } as any;
 };
+
+} // end USE_MOCK
 
 export default api;
