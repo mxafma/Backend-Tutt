@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
-import { Producto, DetalleOrden, OrdenCompra, Proveedor, TipoCompra } from '../types';
+import { Producto, DetalleOrden, OrdenCompra, Proveedor, TipoCompra, Usuario } from '../types';
 import { PlusCircle, Trash2, Save, CheckCircle, ArrowLeft } from 'lucide-react';
 import ProductoPicker from '../components/ProductoPicker';
 
@@ -21,6 +21,7 @@ export default function EditarOrden() {
   const [loading, setLoading] = useState(true);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [orden, setOrden] = useState<Partial<OrdenCompra> | null>(null);
 
   const [detalleActual, setDetalleActual] = useState<{
@@ -40,10 +41,11 @@ export default function EditarOrden() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [resOrden, resProductos, resProveedores] = await Promise.all([
+        const [resOrden, resProductos, resProveedores, resUsuarios] = await Promise.all([
           api.get(`/ordenes/${id}`),
           api.get('/productos'),
           api.get('/proveedores'),
+          api.get('/usuarios'),
         ]);
         const o: OrdenCompra = resOrden.data;
         if (o.estado !== 'BORRADOR' && o.estado !== 'LISTA_PARA_COMPRAR') {
@@ -54,6 +56,7 @@ export default function EditarOrden() {
         setOrden(o);
         setProductos(resProductos.data);
         setProveedores(resProveedores.data);
+        setUsuarios((resUsuarios.data as Usuario[]).filter((u: Usuario) => u.activo));
       } catch (error) {
         console.error(error);
       } finally {
@@ -67,6 +70,20 @@ export default function EditarOrden() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    if (name === 'compradorAsignadoId') {
+      const usuario = usuarios.find(u => u.id === Number(value));
+      setOrden(prev =>
+        prev
+          ? {
+              ...prev,
+              compradorAsignadoId: value ? Number(value) : null,
+              compradorAsignadoNombre: usuario?.nombre ?? null,
+              encargadoCompra: usuario?.nombre ?? '',
+            }
+          : prev
+      );
+      return;
+    }
     setOrden(prev =>
       prev
         ? { ...prev, [name]: name === 'proveedorId' ? (value ? Number(value) : undefined) : value }
@@ -225,14 +242,17 @@ export default function EditarOrden() {
 
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Encargado de Compra</label>
-              <input
-                type="text"
-                name="encargadoCompra"
-                value={orden.encargadoCompra || ''}
+              <select
+                name="compradorAsignadoId"
+                value={orden.compradorAsignadoId ?? ''}
                 onChange={handleOrdenChange}
-                placeholder="Nombre del comprador"
                 className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
-              />
+              >
+                <option value="">Sin asignar</option>
+                {usuarios.map(u => (
+                  <option key={u.id} value={u.id}>{u.nombre}</option>
+                ))}
+              </select>
             </div>
 
             <div className="md:col-span-2 lg:col-span-3">

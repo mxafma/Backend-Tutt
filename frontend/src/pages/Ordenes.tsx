@@ -135,13 +135,20 @@ export default function Ordenes() {
                           >
                             <Eye size={15} /> Ver
                           </Link>
-                          {(orden.estado === 'LISTA_PARA_COMPRAR' ||
-                            orden.estado === 'EN_COMPRA') && (
+                          {orden.estado === 'LISTA_PARA_COMPRAR' && (
                             <Link
                               to={`/compra/${orden.id}`}
                               className="flex items-center gap-1 text-sm text-green-700 hover:text-green-900 font-medium"
                             >
-                              <ShoppingBag size={15} /> Comprar
+                              <ShoppingBag size={15} /> Iniciar Compra
+                            </Link>
+                          )}
+                          {orden.estado === 'EN_COMPRA' && (
+                            <Link
+                              to={`/compra/${orden.id}`}
+                              className="flex items-center gap-1 text-sm text-yellow-700 hover:text-yellow-900 font-medium"
+                            >
+                              <ShoppingBag size={15} /> Continuar
                             </Link>
                           )}
                         </div>

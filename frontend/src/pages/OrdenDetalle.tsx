@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { OrdenCompra, EstadoOrden } from '../types';
 import { ArrowLeft, ShoppingBag, CheckCircle, XCircle, Pencil } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const ESTADO_CONFIG: Record<EstadoOrden, { label: string; bg: string; text: string }> = {
   BORRADOR:           { label: 'Borrador',           bg: 'bg-gray-100',   text: 'text-gray-700' },
@@ -32,6 +33,7 @@ const TIPO_LABEL: Record<string, string> = {
 export default function OrdenDetalle() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [orden, setOrden] = useState<OrdenCompra | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -441,12 +443,21 @@ export default function OrdenDetalle() {
           </button>
         )}
 
-        {(orden.estado === 'RECIBIDA' || orden.estado === 'CERRADA') && (
+        {orden.estado === 'RECIBIDA' && (
           <Link
             to={`/recepcion/${orden.id}`}
             className="flex items-center gap-2 bg-orange-500 text-white px-5 py-2.5 rounded-lg hover:bg-orange-600 font-semibold transition-colors"
           >
-            <Pencil size={18} /> Editar Datos
+            <Pencil size={18} /> Editar Recepción
+          </Link>
+        )}
+
+        {orden.estado === 'CERRADA' && user?.rol === 'ADMIN' && (
+          <Link
+            to={`/recepcion/${orden.id}`}
+            className="flex items-center gap-2 bg-orange-500 text-white px-5 py-2.5 rounded-lg hover:bg-orange-600 font-semibold transition-colors"
+          >
+            <Pencil size={18} /> Editar Recepción (Admin)
           </Link>
         )}
       </div>

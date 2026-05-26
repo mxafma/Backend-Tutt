@@ -27,12 +27,9 @@ export interface Producto {
   id?: number;
   nombre: string;
   descripcion?: string;
-  precio?: number;
-  stock?: number;
-  categoria?: Categoria;
-  proveedor?: Proveedor;
   formatoHabitual?: string;
   margenRecomendado?: number;
+  categoria?: Categoria;
   activo?: boolean;
 }
 

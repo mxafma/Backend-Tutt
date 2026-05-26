@@ -33,16 +33,16 @@ export default function ModoCompra() {
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
-    fetchOrden();
+    fetchOrden(false);
   }, [id]);
 
-  const fetchOrden = async () => {
+  const fetchOrden = async (iniciar = false) => {
     try {
       setLoading(true);
       const res = await api.get(`/ordenes/${id}`);
       const o: OrdenCompra = res.data;
 
-      if (o.estado === 'LISTA_PARA_COMPRAR') {
+      if (o.estado === 'LISTA_PARA_COMPRAR' && iniciar) {
         await api.patch(`/compras/ordenes/${id}/iniciar`, {});
         const res2 = await api.get(`/ordenes/${id}`);
         setOrden(res2.data);
@@ -56,6 +56,15 @@ export default function ModoCompra() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const confirmarInicioCompra = () => {
+    if (!orden) return;
+    const ok = confirm(
+      `¿Iniciar la compra de la Orden #${orden.id}?\n\nEsto cambiará el estado a "En Compra". Asegúrate de estar en el mercado.`
+    );
+    if (ok) fetchOrden(true);
+    else navigate('/ordenes');
   };
 
   const initEdits = (o: OrdenCompra) => {
@@ -166,13 +175,13 @@ export default function ModoCompra() {
     setGuardando(true);
     try {
       if (orden?.detalles) {
-        for (let i = 0; i < orden.detalles.length; i++) {
-          const d = orden.detalles[i];
-          const key = String(d.id ?? `idx_${i}`);
-          if (d.id !== undefined) {
-            await guardarDetalle(d.id, key);
-          }
-        }
+        const saves = orden.detalles
+          .filter(d => d.id !== undefined)
+          .map((d, i) => {
+            const key = String(d.id ?? `idx_${i}`);
+            return guardarDetalle(d.id!, key);
+          });
+        await Promise.all(saves);
       }
       await api.patch(`/compras/ordenes/${id}/finalizar`, {});
       alert('¡Compra finalizada exitosamente!');
@@ -193,6 +202,42 @@ export default function ModoCompra() {
   if (!orden) {
     return <div className="p-8 text-center text-red-500">Orden no encontrada.</div>;
   }
+
+  // Pantalla de confirmación antes de iniciar la compra
+  if (orden.estado === 'LISTA_PARA_COMPRAR') {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full text-center">
+          <ShoppingBag size={48} className="text-green-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Orden #{orden.id}</h2>
+          <p className="text-gray-500 mb-1 text-sm">
+            {orden.tipoCompra} · {orden.lugarCompra || orden.proveedorNombre || orden.fechaCompraPlanificada}
+          </p>
+          <p className="text-gray-500 mb-6 text-sm">
+            {orden.detalles.length} producto{orden.detalles.length !== 1 ? 's' : ''} solicitado{orden.detalles.length !== 1 ? 's' : ''}
+          </p>
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6">
+            Al iniciar la compra, el estado cambiará a <strong>"En Compra"</strong>. Hazlo solo cuando estés en el mercado.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={confirmarInicioCompra}
+              className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-lg transition"
+            >
+              Iniciar Compra
+            </button>
+            <button
+              onClick={() => navigate('/ordenes')}
+              className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition"
+            >
+              Volver a Órdenes
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (orden.estado === 'COMPRADA' || orden.estado === 'CERRADA') {
     return (
       <div className="p-8 text-center">

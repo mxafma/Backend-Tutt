@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Producto, DetalleOrden, OrdenCompra, Proveedor, TipoCompra } from '../types';
+import { Producto, DetalleOrden, OrdenCompra, Proveedor, TipoCompra, Usuario } from '../types';
 import { PlusCircle, Trash2, Save, CheckCircle } from 'lucide-react';
 import ProductoPicker from '../components/ProductoPicker';
 
@@ -18,6 +18,7 @@ export default function CrearOrden() {
   const navigate = useNavigate();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
 
   const [orden, setOrden] = useState<Partial<OrdenCompra>>({
     fechaCompraPlanificada: new Date().toISOString().split('T')[0],
@@ -47,12 +48,14 @@ export default function CrearOrden() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [resProductos, resProveedores] = await Promise.all([
+        const [resProductos, resProveedores, resUsuarios] = await Promise.all([
           api.get('/productos'),
           api.get('/proveedores'),
+          api.get('/usuarios'),
         ]);
         setProductos(resProductos.data);
         setProveedores(resProveedores.data);
+        setUsuarios((resUsuarios.data as Usuario[]).filter(u => u.activo));
       } catch (error) {
         console.error('Error al cargar datos iniciales:', error);
       }
@@ -64,6 +67,16 @@ export default function CrearOrden() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    if (name === 'compradorAsignadoId') {
+      const usuario = usuarios.find(u => u.id === Number(value));
+      setOrden(prev => ({
+        ...prev,
+        compradorAsignadoId: value ? Number(value) : null,
+        compradorAsignadoNombre: usuario?.nombre ?? null,
+        encargadoCompra: usuario?.nombre ?? '',
+      }));
+      return;
+    }
     setOrden(prev => ({
       ...prev,
       [name]: name === 'proveedorId' ? (value ? Number(value) : undefined) : value,
@@ -237,14 +250,17 @@ export default function CrearOrden() {
               <label className="block text-sm font-medium text-gray-600 mb-1">
                 Encargado de Compra
               </label>
-              <input
-                type="text"
-                name="encargadoCompra"
-                value={orden.encargadoCompra || ''}
+              <select
+                name="compradorAsignadoId"
+                value={orden.compradorAsignadoId ?? ''}
                 onChange={handleOrdenChange}
-                placeholder="Nombre del comprador"
                 className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
-              />
+              >
+                <option value="">Sin asignar</option>
+                {usuarios.map(u => (
+                  <option key={u.id} value={u.id}>{u.nombre}</option>
+                ))}
+              </select>
             </div>
 
             <div className="md:col-span-2 lg:col-span-3">
