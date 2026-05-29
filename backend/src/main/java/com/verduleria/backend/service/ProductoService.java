@@ -22,14 +22,16 @@ public class ProductoService {
 
     public Producto guardarProducto(Producto producto) {
         if (producto.getActivo() == null) producto.setActivo(true);
+        if (producto.getCategoria() == null) producto.setCategoria("");
+        if (producto.getDescripcion() == null) producto.setDescripcion("");
         return productoRepository.save(producto);
     }
 
     public Optional<Producto> actualizar(Long id, Producto datos) {
         return productoRepository.findById(id).map(p -> {
             p.setNombre(datos.getNombre());
-            p.setDescripcion(datos.getDescripcion());
-            p.setCategoria(datos.getCategoria());
+            p.setDescripcion(datos.getDescripcion() != null ? datos.getDescripcion() : "");
+            p.setCategoria(datos.getCategoria() != null ? datos.getCategoria() : "");
             p.setFormatoHabitual(datos.getFormatoHabitual());
             p.setMargenRecomendado(datos.getMargenRecomendado());
             if (datos.getActivo() != null) p.setActivo(datos.getActivo());
