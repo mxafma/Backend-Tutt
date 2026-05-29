@@ -14,10 +14,14 @@ public class Producto {
     @Column(nullable = false)
     private String nombre;
 
-    @Column(nullable = false)
+    private String descripcion;
+
     private String categoria;
 
-    private Double precioSugerido;
-    
-    private String descripcion;
+    private String formatoHabitual;
+
+    private Double margenRecomendado;
+
+    @Column(nullable = false)
+    private Boolean activo = true;
 }
