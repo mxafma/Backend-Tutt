@@ -53,10 +53,10 @@ function saveMock(key: string, value: unknown) {
 }
 
 const USUARIOS_DEFAULT: MockUsuario[] = [
-  { id: 1, nombre: 'Administrador', email: 'admin', rol: 'ADMIN', activo: true, password: 'N2k14' },
-  { id: 2, nombre: 'Comprador', email: 'comprador', rol: 'COMPRADOR', activo: true, password: '1234' },
-  { id: 3, nombre: 'Encargado Cierre', email: 'cierre', rol: 'CREADOR_OC', activo: true, password: '1234' },
-  { id: 4, nombre: 'Recepción', email: 'recepcion', rol: 'RECEPCION', activo: true, password: '1234' },
+  { id: 1, nombre: 'Administrador', email: 'admin', rol: 'ADMIN', activo: true, password: 'admin' },
+  { id: 2, nombre: 'Comprador', email: 'comprador', rol: 'COMPRADOR', activo: true, password: 'comprador' },
+  { id: 3, nombre: 'Encargado Cierre', email: 'cierre', rol: 'CREADOR_OC', activo: true, password: 'cierre' },
+  { id: 4, nombre: 'Recepción', email: 'recepcion', rol: 'RECEPCION', activo: true, password: 'recepcion' },
 ];
 
 const PRODUCTOS_DEFAULT: Producto[] = [
