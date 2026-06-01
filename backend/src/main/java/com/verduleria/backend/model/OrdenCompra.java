@@ -1,6 +1,7 @@
 package com.verduleria.backend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDate;
@@ -10,6 +11,7 @@ import java.util.List;
 @Data
 @Entity
 @Table(name = "ordenes_compra")
+@JsonIgnoreProperties({"creador", "compradorAsignado", "proveedor"})
 public class OrdenCompra {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
