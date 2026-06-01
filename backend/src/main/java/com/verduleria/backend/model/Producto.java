@@ -1,5 +1,6 @@
 package com.verduleria.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -23,6 +24,12 @@ public class Producto {
     @JoinColumn(name = "categoria_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Categoria categoria;
+
+    // Columna legacy VARCHAR NOT NULL que aún existe en la DB.
+    // Se puede eliminar con: ALTER TABLE productos ALTER COLUMN categoria DROP NOT NULL;
+    @JsonIgnore
+    @Column(name = "categoria", nullable = false, updatable = false)
+    private String categoriaLegacy = "";
 
     private String formatoHabitual;
 
