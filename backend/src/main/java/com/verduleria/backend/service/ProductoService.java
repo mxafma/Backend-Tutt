@@ -64,7 +64,9 @@ public class ProductoService {
     private void resolverCategoria(Producto producto) {
         Categoria cat = producto.getCategoria();
         if (cat != null && cat.getId() != null) {
-            producto.setCategoria(em.getReference(Categoria.class, cat.getId()));
+            Categoria found = em.find(Categoria.class, cat.getId());
+            if (found == null) throw new RuntimeException("Categoria no encontrada: " + cat.getId());
+            producto.setCategoria(found);
         } else if (cat != null && cat.getId() == null) {
             producto.setCategoria(null);
         }

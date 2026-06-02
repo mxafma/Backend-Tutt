@@ -62,7 +62,8 @@ public class CompraService {
         if (detalle.getEstadoProducto() == null) detalle.setEstadoProducto("AGREGADO_EN_MERCADO");
         if (detalle.getAgregadoEnMercado() == null) detalle.setAgregadoEnMercado(true);
         if (detalle.getProducto() != null && detalle.getProducto().getId() != null) {
-            detalle.setProducto(em.getReference(Producto.class, detalle.getProducto().getId()));
+            Producto p = em.find(Producto.class, detalle.getProducto().getId());
+            detalle.setProducto(p);
         } else {
             detalle.setProducto(null);
         }
