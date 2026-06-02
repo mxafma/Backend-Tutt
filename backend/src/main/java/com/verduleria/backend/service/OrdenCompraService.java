@@ -113,7 +113,9 @@ public class OrdenCompraService {
 
     private void resolverProducto(DetalleOrden d) {
         if (d.getProducto() != null && d.getProducto().getId() != null) {
-            d.setProducto(em.getReference(Producto.class, d.getProducto().getId()));
+            Producto p = em.find(Producto.class, d.getProducto().getId());
+            if (p == null) throw new RuntimeException("Producto no encontrado: " + d.getProducto().getId());
+            d.setProducto(p);
         }
     }
 }
