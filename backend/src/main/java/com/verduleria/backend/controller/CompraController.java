@@ -19,7 +19,7 @@ public class CompraController {
     private CompraService compraService;
 
     @PatchMapping("/ordenes/{id}/iniciar")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COMPRADOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COMPRADOR', 'CREADOR_OC')")
     public ResponseEntity<OrdenCompra> iniciar(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(compraService.iniciar(id));

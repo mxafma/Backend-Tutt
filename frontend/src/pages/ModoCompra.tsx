@@ -43,7 +43,18 @@ export default function ModoCompra() {
       const o: OrdenCompra = res.data;
 
       if (o.estado === 'LISTA_PARA_COMPRAR' && iniciar) {
-        await api.patch(`/compras/ordenes/${id}/iniciar`, {});
+        try {
+          await api.patch(`/compras/ordenes/${id}/iniciar`, {});
+        } catch (err: any) {
+          const status = err?.response?.status;
+          if (status === 403) {
+            alert('No tienes permiso para iniciar la compra. Se requiere rol COMPRADOR o ADMIN.');
+          } else {
+            alert('Error al iniciar la compra. Intenta de nuevo.');
+          }
+          navigate('/ordenes');
+          return;
+        }
         const res2 = await api.get(`/ordenes/${id}`);
         setOrden(res2.data);
         initEdits(res2.data);
