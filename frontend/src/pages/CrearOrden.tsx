@@ -47,18 +47,16 @@ export default function CrearOrden() {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const [resProductos, resProveedores, resUsuarios] = await Promise.all([
-          api.get('/productos'),
-          api.get('/proveedores'),
-          api.get('/usuarios'),
-        ]);
-        setProductos(resProductos.data);
-        setProveedores(resProveedores.data);
-        setUsuarios((resUsuarios.data as Usuario[]).filter(u => u.activo));
-      } catch (error) {
-        console.error('Error al cargar datos iniciales:', error);
-      }
+      const [resProductos, resProveedores, resUsuarios] = await Promise.allSettled([
+        api.get('/productos'),
+        api.get('/proveedores'),
+        api.get('/usuarios'),
+      ]);
+      if (resProductos.status === 'fulfilled') setProductos(resProductos.value.data);
+      else console.error('No se pudieron cargar productos:', resProductos.reason);
+      if (resProveedores.status === 'fulfilled') setProveedores(resProveedores.value.data);
+      if (resUsuarios.status === 'fulfilled')
+        setUsuarios((resUsuarios.value.data as Usuario[]).filter(u => u.activo));
     };
     fetchData();
   }, []);

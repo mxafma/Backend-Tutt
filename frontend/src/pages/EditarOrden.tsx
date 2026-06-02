@@ -41,22 +41,29 @@ export default function EditarOrden() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [resOrden, resProductos, resProveedores, resUsuarios] = await Promise.all([
+        const [resOrden, resProductos, resProveedores, resUsuarios] = await Promise.allSettled([
           api.get(`/ordenes/${id}`),
           api.get('/productos'),
           api.get('/proveedores'),
           api.get('/usuarios'),
         ]);
-        const o: OrdenCompra = resOrden.data;
+        if (resOrden.status === 'rejected') {
+          console.error('No se pudo cargar la orden:', resOrden.reason);
+          navigate('/ordenes');
+          return;
+        }
+        const o: OrdenCompra = resOrden.value.data;
         if (o.estado !== 'BORRADOR' && o.estado !== 'LISTA_PARA_COMPRAR') {
           alert('Solo se pueden editar órdenes en estado Borrador o Lista para Comprar.');
           navigate(`/ordenes/${id}`);
           return;
         }
         setOrden(o);
-        setProductos(resProductos.data);
-        setProveedores(resProveedores.data);
-        setUsuarios((resUsuarios.data as Usuario[]).filter((u: Usuario) => u.activo));
+        if (resProductos.status === 'fulfilled') setProductos(resProductos.value.data);
+        else console.error('No se pudieron cargar productos:', resProductos.reason);
+        if (resProveedores.status === 'fulfilled') setProveedores(resProveedores.value.data);
+        if (resUsuarios.status === 'fulfilled')
+          setUsuarios((resUsuarios.value.data as Usuario[]).filter((u: Usuario) => u.activo));
       } catch (error) {
         console.error(error);
       } finally {
