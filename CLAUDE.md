@@ -806,3 +806,33 @@ Antes de construir el sistema completo, se deben validar o definir:
 - Flujo exacto de exportación a Excel.
 - Reglas para conflictos de sincronización.
 - Nivel de detalle del historial.
+
+---
+
+## 32. Vista Global en Modo Compra
+
+Durante la compra, el comprador puede alternar entre dos vistas dentro de la pantalla Modo Compra:
+
+### Vista Detallada (por defecto)
+Muestra cada producto como una tarjeta expandida con todos los campos de edición (cantidad, costo, factura, contenido por formato, comentario). Es la vista principal para completar datos de cada ítem.
+
+### Vista Global
+Lista compacta de una fila por producto, visible con el botón "Vista global" en el header. Muestra: nombre, formato, cantidad solicitada, costo ingresado y estado con color.
+
+Al tocar una fila en Vista Global, el sistema regresa a Vista Detallada y hace scroll automático al card correspondiente.
+
+### Reordenamiento de ítems
+En Vista Global el comprador puede arrastrar los ítems (ícono ≡) para reorganizar la lista en el orden que prefiera para su recorrido. Este orden es visual y persiste durante la sesión pero no se guarda en el backend.
+
+### Criterios de orden rápido
+Disponibles en Vista Global como punto de partida antes de ajustar manualmente:
+- **Por estado**: Pendientes primero, luego parciales, luego no comprados, luego comprados.
+- **A→Z**: Orden alfabético por nombre de producto.
+- **Original**: Orden original de la orden de compra.
+
+El orden aplicado por cualquiera de estos criterios puede seguir siendo ajustado manualmente con drag & drop. El sistema indica cuando el orden es "Personalizado".
+
+### Implementación
+- Librería: `@dnd-kit/core` y `@dnd-kit/sortable` (soporta touch para Android/tablet).
+- Solo afecta `ModoCompra.tsx`, sin cambios en backend ni en otros componentes.
+- Los productos agregados en el mercado se añaden al final del orden actual.
