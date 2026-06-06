@@ -4,6 +4,77 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    /* Usa variables de DaisyUI para que el body cambie con el tema */
+    @apply bg-base-200 text-base-content;
   }
+}
+
+/* ============================================================
+   OVERRIDES PARA TEMA OSCURO
+   Mapea clases hardcodeadas de Tailwind a variables de DaisyUI
+   cuando el tema oscuro está activo.
+   ============================================================ */
+
+/* Fondos */
+[data-theme="gestionoc-dark"] .bg-white          { background-color: hsl(var(--b1)) !important; }
+[data-theme="gestionoc-dark"] .bg-gray-50         { background-color: hsl(var(--b2)) !important; }
+[data-theme="gestionoc-dark"] .bg-gray-100        { background-color: hsl(var(--b2)) !important; }
+[data-theme="gestionoc-dark"] .bg-gray-200        { background-color: hsl(var(--b3)) !important; }
+[data-theme="gestionoc-dark"] .bg-gray-800        { background-color: hsl(var(--b3)) !important; }
+
+/* Hover fondos */
+[data-theme="gestionoc-dark"] .hover\:bg-gray-50:hover  { background-color: hsl(var(--b3)) !important; }
+[data-theme="gestionoc-dark"] .hover\:bg-gray-100:hover { background-color: hsl(var(--b3)) !important; }
+[data-theme="gestionoc-dark"] .hover\:bg-gray-200:hover { background-color: hsl(var(--b3)) !important; }
+
+/* Texto */
+[data-theme="gestionoc-dark"] .text-gray-900 { color: hsl(var(--bc))         !important; }
+[data-theme="gestionoc-dark"] .text-gray-800 { color: hsl(var(--bc))         !important; }
+[data-theme="gestionoc-dark"] .text-gray-700 { color: hsl(var(--bc) / 0.85)  !important; }
+[data-theme="gestionoc-dark"] .text-gray-600 { color: hsl(var(--bc) / 0.70)  !important; }
+[data-theme="gestionoc-dark"] .text-gray-500 { color: hsl(var(--bc) / 0.55)  !important; }
+[data-theme="gestionoc-dark"] .text-gray-400 { color: hsl(var(--bc) / 0.40)  !important; }
+[data-theme="gestionoc-dark"] .text-gray-300 { color: hsl(var(--bc) / 0.30)  !important; }
+
+/* Hover texto */
+[data-theme="gestionoc-dark"] .hover\:text-gray-800:hover { color: hsl(var(--bc))        !important; }
+[data-theme="gestionoc-dark"] .hover\:text-gray-700:hover { color: hsl(var(--bc) / 0.85) !important; }
+[data-theme="gestionoc-dark"] .hover\:text-gray-600:hover { color: hsl(var(--bc) / 0.70) !important; }
+
+/* Bordes */
+[data-theme="gestionoc-dark"] .border-gray-100 { border-color: hsl(var(--b3)) !important; }
+[data-theme="gestionoc-dark"] .border-gray-200 { border-color: hsl(var(--b3)) !important; }
+[data-theme="gestionoc-dark"] .border-gray-300 { border-color: hsl(var(--b3)) !important; }
+
+/* Divisores (divide-y, divide-x) */
+[data-theme="gestionoc-dark"] .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: hsl(var(--b3)) !important;
+}
+[data-theme="gestionoc-dark"] .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: hsl(var(--b3)) !important;
+}
+
+/* Inputs, selects, textareas que NO usan clases DaisyUI */
+[data-theme="gestionoc-dark"] input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not(.btn),
+[data-theme="gestionoc-dark"] select,
+[data-theme="gestionoc-dark"] textarea {
+  background-color: hsl(var(--b1)) !important;
+  color: hsl(var(--bc)) !important;
+  border-color: hsl(var(--b3)) !important;
+}
+
+[data-theme="gestionoc-dark"] input::placeholder,
+[data-theme="gestionoc-dark"] textarea::placeholder {
+  color: hsl(var(--bc) / 0.40) !important;
+}
+
+/* Tabla thead */
+[data-theme="gestionoc-dark"] thead,
+[data-theme="gestionoc-dark"] .bg-gray-50.border-b {
+  background-color: hsl(var(--b2)) !important;
+}
+
+/* Accent slider (range) thumb */
+[data-theme="gestionoc-dark"] input[type="range"].accent-green-600 {
+  accent-color: hsl(var(--p));
 }

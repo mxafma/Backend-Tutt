@@ -1,7 +1,9 @@
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   ShoppingCart, PackageOpen, LayoutDashboard,
   PlusCircle, ClipboardList, ShieldCheck, LogOut, User, Truck,
+  Sun, Moon,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -27,6 +29,17 @@ const ROL_LABELS: Record<string, string> = {
 
 function Navbar() {
   const { user, logout } = useAuth();
+  const [dark, setDark] = useState<boolean>(
+    () => localStorage.getItem('gestionoc_theme') === 'dark'
+  );
+
+  useEffect(() => {
+    document.documentElement.setAttribute(
+      'data-theme',
+      dark ? 'gestionoc-dark' : 'gestionoc'
+    );
+    localStorage.setItem('gestionoc_theme', dark ? 'dark' : 'light');
+  }, [dark]);
 
   return (
     <div className="navbar bg-primary text-primary-content shadow-md px-4 min-h-[56px]">
@@ -79,11 +92,20 @@ function Navbar() {
         </ul>
       </div>
 
-      {/* Usuario y logout */}
-      <div className="navbar-end gap-2">
+      {/* Usuario, toggle tema y logout */}
+      <div className="navbar-end gap-1">
+        {/* Toggle oscuro/claro */}
+        <button
+          onClick={() => setDark((d: boolean) => !d)}
+          title={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          className="btn btn-ghost btn-sm btn-circle"
+        >
+          {dark ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+
         {user && (
           <>
-            <div className="text-right hidden sm:block">
+            <div className="text-right hidden sm:block ml-1">
               <p className="text-sm font-semibold leading-tight">{user.nombre}</p>
               <p className="text-xs opacity-70">{ROL_LABELS[user.rol] ?? user.rol}</p>
             </div>

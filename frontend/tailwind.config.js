@@ -5,17 +5,7 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {
-      colors: {
-        brand: {
-          green:       '#2a7a2e',
-          'green-light':'#4db520',
-          orange:      '#f5921d',
-          lime:        '#eaf5c2',
-          'lime-dark': '#d4e89a',
-        },
-      },
-    },
+    extend: {},
   },
   plugins: [require('daisyui')],
   daisyui: {
@@ -40,8 +30,28 @@ export default {
           "error":             "#ef4444",
         },
       },
+      {
+        "gestionoc-dark": {
+          "primary":           "#52c822",
+          "primary-content":   "#071a07",
+          "secondary":         "#2a7a2e",
+          "secondary-content": "#ffffff",
+          "accent":            "#f5921d",
+          "accent-content":    "#1a0a00",
+          "neutral":           "#1e2c1e",
+          "neutral-content":   "#d0ecd0",
+          "base-100":          "#1a261a",
+          "base-200":          "#142014",
+          "base-300":          "#253225",
+          "base-content":      "#d0ecd0",
+          "info":              "#60a5fa",
+          "success":           "#4ade80",
+          "warning":           "#fbbf24",
+          "error":             "#f87171",
+        },
+      },
     ],
-    darkTheme: false,
+    darkTheme: "gestionoc-dark",
     base: true,
     styled: true,
     utils: true,
