@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Producto } from '../types';
-import { PackageOpen, PlusCircle, X, Check, Pencil, Trash2 } from 'lucide-react';
+import { PackageOpen, PlusCircle, X, Check, Pencil, Trash2, History } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const FORMATOS_SUGERIDOS = ['Bins', 'Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
@@ -16,6 +17,7 @@ const formVacio = (): Omit<Producto, 'id'> => ({
 
 export default function Productos() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -249,6 +251,12 @@ export default function Productos() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => navigate(`/productos/${p.id}/historial`)}
+                          className="flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition"
+                        >
+                          <History size={13} /> Historial
+                        </button>
                         <button
                           onClick={() => iniciarEdicion(p)}
                           className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"

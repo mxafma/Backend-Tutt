@@ -1,6 +1,9 @@
 package com.verduleria.backend.controller;
 
+import com.verduleria.backend.model.DetalleOrden;
+import com.verduleria.backend.model.EstadoOrden;
 import com.verduleria.backend.model.Producto;
+import com.verduleria.backend.repository.DetalleOrdenRepository;
 import com.verduleria.backend.service.ProductoService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/productos")
@@ -17,6 +23,9 @@ public class ProductoController {
 
     @Autowired
     private ProductoService productoService;
+
+    @Autowired
+    private DetalleOrdenRepository detalleOrdenRepository;
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -54,5 +63,32 @@ public class ProductoController {
         return productoService.desactivar(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/historial")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<Map<String, Object>>> historial(@PathVariable Long id) {
+        List<EstadoOrden> estados = List.of(EstadoOrden.COMPRADA, EstadoOrden.RECIBIDA, EstadoOrden.CERRADA);
+        List<DetalleOrden> detalles = detalleOrdenRepository.findHistorialByProductoId(id, estados);
+        List<Map<String, Object>> result = detalles.stream().map(d -> {
+            Map<String, Object> item = new HashMap<>();
+            item.put("detalleId", d.getId());
+            item.put("ordenId", d.getOrden().getId());
+            item.put("fecha", d.getOrden().getFechaCompraReal() != null
+                    ? d.getOrden().getFechaCompraReal().toLocalDate()
+                    : d.getOrden().getFechaCompraPlanificada());
+            item.put("formato", d.getFormato());
+            item.put("cantidadComprada", d.getCantidadComprada());
+            item.put("cantidadInterna", d.getCantidadInterna());
+            item.put("costoTotal", d.getCostoTotal());
+            item.put("costoUnitario", d.getCostoUnitarioCalculado());
+            item.put("precioFinal", d.getPrecioFinalEditado());
+            item.put("factura", d.getFactura());
+            item.put("estadoProducto", d.getEstadoProducto());
+            item.put("proveedorNombre", d.getOrden().getProveedor() != null
+                    ? d.getOrden().getProveedor().getNombre() : null);
+            return item;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
     }
 }

@@ -16,6 +16,7 @@ import ModoCompra from './pages/ModoCompra';
 import Recepcion from './pages/Recepcion';
 import Admin from './pages/Admin';
 import Proveedores from './pages/Proveedores';
+import HistorialProducto from './pages/HistorialProducto';
 
 const ROL_LABELS: Record<string, string> = {
   ADMIN: 'Administrador',
@@ -131,6 +132,7 @@ function AppShell() {
           <Route path="/compra/:id" element={<ModoCompra />} />
           <Route path="/recepcion/:id" element={<Recepcion />} />
           <Route path="/proveedores" element={<Proveedores />} />
+          <Route path="/productos/:id/historial" element={<HistorialProducto />} />
           <Route
             path="/admin"
             element={
