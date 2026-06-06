@@ -32,10 +32,10 @@ export default {
       },
       {
         "gestionoc-dark": {
-          "primary":           "#52c822",
-          "primary-content":   "#071a07",
-          "secondary":         "#2a7a2e",
-          "secondary-content": "#ffffff",
+          "primary":           "#2a7a2e",
+          "primary-content":   "#ffffff",
+          "secondary":         "#52c822",
+          "secondary-content": "#071a07",
           "accent":            "#f5921d",
           "accent-content":    "#1a0a00",
           "neutral":           "#1e2c1e",
