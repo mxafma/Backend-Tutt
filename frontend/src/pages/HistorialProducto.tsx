@@ -127,6 +127,7 @@ export default function HistorialProducto() {
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Formato</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase text-center">Cant.</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Costo total</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Costo/formato</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Costo unit.</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Precio venta</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase text-center">Factura</th>
@@ -148,6 +149,11 @@ export default function HistorialProducto() {
                   </td>
                   <td className="px-4 py-3 text-right font-medium">
                     {h.costoTotal != null ? `$${h.costoTotal.toLocaleString('es-CL')}` : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-right font-semibold text-orange-700">
+                    {h.costoTotal != null && h.cantidadComprada != null && h.cantidadComprada > 0
+                      ? `$${Math.round(h.costoTotal / h.cantidadComprada).toLocaleString('es-CL')}`
+                      : '—'}
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-gray-800">
                     {h.costoUnitario != null ? `$${Math.round(h.costoUnitario).toLocaleString('es-CL')}` : '—'}
