@@ -32,7 +32,7 @@ export default function Productos() {
     try {
       setLoading(true);
       const res = await api.get('/productos');
-      setProductos(res.data);
+      setProductos(res.data.filter((p: Producto) => p.activo !== false));
     } catch (err: any) {
       setError(err.message || 'Error al cargar los productos');
     } finally {
