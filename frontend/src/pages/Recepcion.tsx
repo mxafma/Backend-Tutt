@@ -4,7 +4,7 @@ import api from '../services/api';
 import { OrdenCompra } from '../types';
 import { ArrowLeft, CheckCircle, Plus } from 'lucide-react';
 
-const FORMATOS_SUGERIDOS = ['Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
+const FORMATOS_SUGERIDOS = ['Bins', 'Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
 
 const ESTADO_LABEL: Record<string, { label: string; cls: string }> = {
   COMPRADO:          { label: 'Comprado',        cls: 'bg-green-100 text-green-700' },

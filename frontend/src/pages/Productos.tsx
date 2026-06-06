@@ -4,7 +4,7 @@ import { Producto } from '../types';
 import { PackageOpen, PlusCircle, X, Check, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const FORMATOS_SUGERIDOS = ['Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
+const FORMATOS_SUGERIDOS = ['Bins', 'Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
 
 const formVacio = (): Omit<Producto, 'id'> => ({
   nombre: '',

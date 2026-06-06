@@ -5,7 +5,7 @@ import { Producto, DetalleOrden, OrdenCompra, Proveedor, TipoCompra, Usuario } f
 import { PlusCircle, Trash2, Save, CheckCircle, ArrowLeft } from 'lucide-react';
 import ProductoPicker from '../components/ProductoPicker';
 
-const FORMATOS_SUGERIDOS = ['Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
+const FORMATOS_SUGERIDOS = ['Bins', 'Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
 
 const TIPO_COMPRA_LABELS: Record<TipoCompra, string> = {
   MERCADO: 'Mercado',
