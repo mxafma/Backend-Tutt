@@ -273,7 +273,7 @@ export default function CrearOrden() {
                 <ProductoPicker
                   productos={productos}
                   seleccionado={detalleActual.producto}
-                  onSelect={p => setDetalleActual(prev => ({ ...prev, producto: p }))}
+                  onSelect={p => setDetalleActual(prev => ({ ...prev, producto: p, formato: p.formatoHabitual || prev.formato }))}
                   onClear={() => setDetalleActual(prev => ({ ...prev, producto: undefined }))}
                   onCreado={p => setProductos(prev => [...prev, p].sort((a, b) => a.nombre.localeCompare(b.nombre)))}
                 />
