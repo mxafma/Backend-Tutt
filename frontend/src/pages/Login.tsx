@@ -41,7 +41,7 @@ export default function Login() {
             <ShoppingCart size={32} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-800">Sistema de Compras</h1>
-          <p className="text-gray-500 text-sm mt-1">Verdulería</p>
+          <p className="text-gray-500 text-sm mt-1">TuttiFruty</p>
         </div>
 
         {/* Card */}
@@ -101,7 +101,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-gray-400 text-xs mt-6">
-          &copy; {new Date().getFullYear()} MVP Verdulería
+          &copy; {new Date().getFullYear()} MVP GestionComrpas TuttiFruty
         </p>
       </div>
     </div>
