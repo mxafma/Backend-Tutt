@@ -6,6 +6,7 @@ import com.verduleria.backend.model.OrdenCompra;
 import com.verduleria.backend.model.Producto;
 import com.verduleria.backend.repository.DetalleOrdenRepository;
 import com.verduleria.backend.repository.OrdenCompraRepository;
+import com.verduleria.backend.repository.ProductoRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
@@ -27,6 +28,9 @@ public class CompraService {
 
     @Autowired
     private DetalleOrdenRepository detalleOrdenRepository;
+
+    @Autowired
+    private ProductoRepository productoRepository;
 
     @PersistenceContext
     private EntityManager em;
@@ -64,6 +68,11 @@ public class CompraService {
         if (detalle.getProducto() != null && detalle.getProducto().getId() != null) {
             Producto p = em.find(Producto.class, detalle.getProducto().getId());
             detalle.setProducto(p);
+        } else if (detalle.getProducto() != null && detalle.getProducto().getNombre() != null && !detalle.getProducto().getNombre().isBlank()) {
+            Producto nuevo = new Producto();
+            nuevo.setNombre(detalle.getProducto().getNombre());
+            nuevo.setActivo(true);
+            detalle.setProducto(productoRepository.save(nuevo));
         } else {
             detalle.setProducto(null);
         }
