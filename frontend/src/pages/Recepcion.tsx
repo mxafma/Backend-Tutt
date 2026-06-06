@@ -6,6 +6,14 @@ import { ArrowLeft, CheckCircle, Plus } from 'lucide-react';
 
 const FORMATOS_SUGERIDOS = ['Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
 
+const ESTADO_LABEL: Record<string, { label: string; cls: string }> = {
+  COMPRADO:          { label: 'Comprado',        cls: 'bg-green-100 text-green-700' },
+  COMPRA_PARCIAL:    { label: 'Parcial',          cls: 'bg-yellow-100 text-yellow-700' },
+  NO_COMPRADO:       { label: 'No comprado',      cls: 'bg-red-100 text-red-700' },
+  AGREGADO_EN_MERCADO: { label: 'Mercado',        cls: 'bg-blue-100 text-blue-600' },
+  PENDIENTE:         { label: 'Pendiente',        cls: 'bg-gray-100 text-gray-600' },
+};
+
 const redondearDecena = (valor: number): number => Math.floor(valor / 10) * 10;
 
 interface DetalleRecepcion {
@@ -313,11 +321,11 @@ export default function Recepcion() {
               {/* Encabezado del producto */}
               <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-gray-800 text-base">
+                  <h3 className="font-bold text-gray-800 text-base flex items-center flex-wrap gap-2">
                     {detalle.nombreProductoSnapshot || detalle.producto?.nombre}
-                    {detalle.agregadoEnMercado && (
-                      <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
-                        Mercado
+                    {detalle.estadoProducto && ESTADO_LABEL[detalle.estadoProducto] && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${ESTADO_LABEL[detalle.estadoProducto].cls}`}>
+                        {ESTADO_LABEL[detalle.estadoProducto].label}
                       </span>
                     )}
                   </h3>
