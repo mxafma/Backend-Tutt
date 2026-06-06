@@ -31,7 +31,7 @@ function Navbar() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link to="/" className="font-bold text-xl flex items-center gap-2 shrink-0">
-          <ShoppingCart size={22} /> Verdulería
+          <ShoppingCart size={22} /> GestionOC
         </Link>
 
         {/* Links principales */}
