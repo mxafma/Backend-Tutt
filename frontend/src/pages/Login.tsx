@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { ShoppingCart, LogIn } from 'lucide-react';
+import { LogIn, ShoppingBasket } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -33,25 +33,40 @@ export default function Login() {
   };
 
   return (
-    <div className="hero min-h-screen bg-base-200">
-      <div className="hero-content flex-col w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4 shadow-lg">
-            <ShoppingCart size={32} className="text-primary-content" />
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: 'linear-gradient(135deg, #eaf5c2 0%, #d4e89a 50%, #c8e07a 100%)',
+      }}
+    >
+      <div className="w-full max-w-sm">
+        {/* Branding */}
+        <div className="text-center mb-6 select-none">
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 shadow-lg"
+            style={{ background: '#2a7a2e' }}
+          >
+            <ShoppingBasket size={32} className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-base-content">Sistema de Compras</h1>
-          <p className="text-base-content/60 text-sm mt-1">TuttiFruty</p>
+
+          {/* Logo TuttiFruty */}
+          <h1 className="text-4xl font-extrabold leading-none tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>
+            <span style={{ color: '#f5921d' }}>Tutti</span>
+            <span style={{ color: '#2a7a2e' }}>fruty</span>
+          </h1>
+          <p className="text-sm mt-1.5" style={{ color: '#3a6e3e' }}>
+            Sistema de Gestión de Compras
+          </p>
         </div>
 
         {/* Card */}
-        <div className="card w-full shadow-2xl bg-base-100">
-          <div className="card-body">
-            <h2 className="card-title text-lg mb-2">Iniciar sesión</h2>
+        <div className="card bg-base-100 shadow-2xl">
+          <div className="card-body gap-4">
+            <h2 className="text-lg font-semibold text-base-content/80">Iniciar sesión</h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               <div className="form-control">
-                <label className="label">
+                <label className="label py-0.5">
                   <span className="label-text font-medium">Usuario</span>
                 </label>
                 <input
@@ -61,12 +76,13 @@ export default function Login() {
                   autoComplete="username"
                   autoFocus
                   placeholder="Ingresa tu usuario"
-                  className="input input-bordered w-full focus:input-primary"
+                  className="input input-bordered w-full focus:outline-none"
+                  style={{ '--tw-ring-color': '#2a7a2e' } as React.CSSProperties}
                 />
               </div>
 
               <div className="form-control">
-                <label className="label">
+                <label className="label py-0.5">
                   <span className="label-text font-medium">Contraseña</span>
                 </label>
                 <input
@@ -75,7 +91,7 @@ export default function Login() {
                   onChange={e => setPassword(e.target.value)}
                   autoComplete="current-password"
                   placeholder="Ingresa tu contraseña"
-                  className="input input-bordered w-full focus:input-primary"
+                  className="input input-bordered w-full focus:outline-none"
                 />
               </div>
 
@@ -85,26 +101,25 @@ export default function Login() {
                 </div>
               )}
 
-              <div className="form-control mt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-primary w-full gap-2"
-                >
-                  {loading ? (
-                    <span className="loading loading-spinner loading-sm" />
-                  ) : (
-                    <LogIn size={18} />
-                  )}
-                  {loading ? 'Ingresando...' : 'Ingresar'}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn w-full gap-2 mt-1 text-white border-0"
+                style={{ background: loading ? '#4db520' : '#2a7a2e' }}
+              >
+                {loading ? (
+                  <span className="loading loading-spinner loading-sm" />
+                ) : (
+                  <LogIn size={18} />
+                )}
+                {loading ? 'Ingresando...' : 'Ingresar'}
+              </button>
             </form>
           </div>
         </div>
 
-        <p className="text-base-content/40 text-xs mt-2">
-          &copy; {new Date().getFullYear()} MVP GestionCompras TuttiFruty
+        <p className="text-center text-xs mt-5" style={{ color: '#5a7e3a' }}>
+          &copy; {new Date().getFullYear()} GestionOC — TuttiFruty
         </p>
       </div>
     </div>

@@ -32,7 +32,7 @@ function Navbar() {
     <div className="navbar bg-primary text-primary-content shadow-md px-4 min-h-[56px]">
       {/* Logo */}
       <div className="navbar-start">
-        <Link to="/" className="btn btn-ghost text-lg font-bold gap-2 px-2">
+        <Link to="/" className="btn btn-ghost normal-case text-lg font-bold gap-2 px-2">
           <ShoppingCart size={20} /> GestionOC
         </Link>
       </div>
