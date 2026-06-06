@@ -24,8 +24,9 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { getFormatos } from '../utils/formatos';
 
-const FORMATOS_SUGERIDOS = ['Bins', 'Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete', 'Otro'];
+// 'Otro' se agrega siempre al final como opción especial de UI, no se guarda en la lista de formatos
 
 interface DetalleEdit {
   cantidadComprada: number;
@@ -134,6 +135,7 @@ function SortableRow({
 export default function ModoCompra() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [formatos] = useState<string[]>(() => [...getFormatos(), 'Otro']);
   const [orden, setOrden] = useState<OrdenCompra | null>(null);
   const [loading, setLoading] = useState(true);
   const [edits, setEdits] = useState<Record<string, DetalleEdit>>({});
@@ -850,7 +852,7 @@ export default function ModoCompra() {
                       onChange={e => setNuevoItem(p => ({ ...p, formato: e.target.value }))}
                       className="p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
                     >
-                      {FORMATOS_SUGERIDOS.map(f => (
+                      {formatos.map(f => (
                         <option key={f} value={f}>{f}</option>
                       ))}
                     </select>

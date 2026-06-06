@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Producto } from '../types';
-import { PackageOpen, PlusCircle, X, Check, Pencil, Trash2, History } from 'lucide-react';
+import { PackageOpen, PlusCircle, X, Check, Pencil, Trash2, History, Settings2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getFormatos, saveFormatos, DEFAULT_FORMATOS } from '../utils/formatos';
 
-const FORMATOS_SUGERIDOS = ['Bins', 'Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
+// lista cargada/gestionada desde utils/formatos
 
 const formVacio = (): Omit<Producto, 'id'> => ({
   nombre: '',
@@ -18,6 +19,10 @@ const formVacio = (): Omit<Producto, 'id'> => ({
 export default function Productos() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [formatos, setFormatos] = useState<string[]>(getFormatos);
+  const [mostrarFormatos, setMostrarFormatos] = useState(false);
+  const [nuevoFormato, setNuevoFormato] = useState('');
+  const nuevoFormatoRef = useRef<HTMLInputElement>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +99,27 @@ export default function Productos() {
     setMostrarForm(false);
   };
 
+  const agregarFormato = () => {
+    const val = nuevoFormato.trim();
+    if (!val || formatos.includes(val)) return;
+    const updated = [...formatos, val];
+    saveFormatos(updated);
+    setFormatos(updated);
+    setNuevoFormato('');
+    nuevoFormatoRef.current?.focus();
+  };
+
+  const eliminarFormato = (f: string) => {
+    const updated = formatos.filter(x => x !== f);
+    saveFormatos(updated);
+    setFormatos(updated);
+  };
+
+  const resetFormatos = () => {
+    saveFormatos(DEFAULT_FORMATOS);
+    setFormatos([...DEFAULT_FORMATOS]);
+  };
+
   const desactivar = async (p: Producto) => {
     if (!confirm(`¿Eliminar "${p.nombre}"? El producto quedará inactivo.`)) return;
     try {
@@ -163,7 +189,7 @@ export default function Productos() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
               >
-                {FORMATOS_SUGERIDOS.map(f => (
+                {formatos.map(f => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
@@ -205,6 +231,54 @@ export default function Productos() {
           </div>
         </div>
       )}
+
+      {/* Panel de formatos */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4">
+        <button
+          onClick={() => setMostrarFormatos(v => !v)}
+          className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition rounded-xl"
+        >
+          <span className="flex items-center gap-2"><Settings2 size={15} /> Formatos disponibles</span>
+          <span className="text-gray-400 text-xs">{mostrarFormatos ? '▲ cerrar' : '▼ ver/editar'}</span>
+        </button>
+        {mostrarFormatos && (
+          <div className="px-5 pb-4 border-t border-gray-100">
+            <div className="flex flex-wrap gap-2 mt-3 mb-3">
+              {formatos.map(f => (
+                <span key={f} className="flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+                  {f}
+                  <button onClick={() => eliminarFormato(f)} className="text-gray-400 hover:text-red-500 ml-1">
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2 items-center">
+              <input
+                ref={nuevoFormatoRef}
+                type="text"
+                value={nuevoFormato}
+                onChange={e => setNuevoFormato(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && agregarFormato()}
+                placeholder="Nuevo formato..."
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none w-44"
+              />
+              <button
+                onClick={agregarFormato}
+                className="flex items-center gap-1 bg-green-700 hover:bg-green-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+              >
+                <PlusCircle size={13} /> Agregar
+              </button>
+              <button
+                onClick={resetFormatos}
+                className="text-xs text-gray-400 hover:text-gray-600 underline ml-2"
+              >
+                Restablecer
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Tabla */}
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">

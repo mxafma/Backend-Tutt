@@ -4,8 +4,9 @@ import api from '../services/api';
 import { Producto, DetalleOrden, OrdenCompra, Proveedor, TipoCompra, Usuario } from '../types';
 import { PlusCircle, Trash2, Save, CheckCircle } from 'lucide-react';
 import ProductoPicker from '../components/ProductoPicker';
+import { getFormatos } from '../utils/formatos';
 
-const FORMATOS_SUGERIDOS = ['Bins', 'Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
+// lista cargada desde utils/formatos (editable en /productos)
 
 const TIPO_COMPRA_LABELS: Record<TipoCompra, string> = {
   MERCADO: 'Mercado',
@@ -16,6 +17,7 @@ const TIPO_COMPRA_LABELS: Record<TipoCompra, string> = {
 
 export default function CrearOrden() {
   const navigate = useNavigate();
+  const [formatos] = useState<string[]>(getFormatos);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -287,7 +289,7 @@ export default function CrearOrden() {
                   onChange={handleDetalleChange}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
                 >
-                  {FORMATOS_SUGERIDOS.map(f => (
+                  {formatos.map(f => (
                     <option key={f} value={f}>
                       {f}
                     </option>

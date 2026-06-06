@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { OrdenCompra } from '../types';
 import { ArrowLeft, CheckCircle, Plus } from 'lucide-react';
+import { getFormatos } from '../utils/formatos';
 
-const FORMATOS_SUGERIDOS = ['Bins', 'Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
+// lista cargada desde utils/formatos (editable en /productos)
 
 const ESTADO_LABEL: Record<string, { label: string; cls: string }> = {
   COMPRADO:          { label: 'Comprado',        cls: 'bg-green-100 text-green-700' },
@@ -69,6 +70,7 @@ function calcular(edit: DetalleRecepcion): Calculos {
 export default function Recepcion() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [formatos] = useState<string[]>(getFormatos);
   const [orden, setOrden] = useState<OrdenCompra | null>(null);
   const [loading, setLoading] = useState(true);
   const [edits, setEdits] = useState<Record<string, DetalleRecepcion>>({});
@@ -567,7 +569,7 @@ export default function Recepcion() {
                   onChange={e => setNuevoItem(p => ({ ...p, formato: e.target.value }))}
                   className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
                 >
-                  {FORMATOS_SUGERIDOS.map(f => (
+                  {formatos.map((f: string) => (
                     <option key={f} value={f}>{f}</option>
                   ))}
                 </select>
