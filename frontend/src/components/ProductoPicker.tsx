@@ -29,11 +29,13 @@ export default function ProductoPicker({ productos, seleccionado, onSelect, onCl
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const filtrados = busqueda.length > 0
-    ? productos.filter(p => p.nombre.toLowerCase().includes(busqueda.toLowerCase())).slice(0, 10)
-    : productos.slice(0, 10);
+  const activos = productos.filter(p => p.activo !== false);
 
-  const coincideExacto = productos.some(p => p.nombre.toLowerCase() === busqueda.toLowerCase());
+  const filtrados = busqueda.length > 0
+    ? activos.filter(p => p.nombre.toLowerCase().includes(busqueda.toLowerCase())).slice(0, 10)
+    : activos.slice(0, 10);
+
+  const coincideExacto = activos.some(p => p.nombre.toLowerCase() === busqueda.toLowerCase());
 
   const seleccionar = (p: Producto) => {
     onSelect(p);
