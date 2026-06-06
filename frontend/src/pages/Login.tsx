@@ -33,75 +33,78 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        {/* Logo / título */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-700 rounded-full mb-4 shadow-lg">
-            <ShoppingCart size={32} className="text-white" />
+    <div className="hero min-h-screen bg-base-200">
+      <div className="hero-content flex-col w-full max-w-sm">
+        {/* Logo */}
+        <div className="text-center mb-2">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4 shadow-lg">
+            <ShoppingCart size={32} className="text-primary-content" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Sistema de Compras</h1>
-          <p className="text-gray-500 text-sm mt-1">TuttiFruty</p>
+          <h1 className="text-3xl font-bold text-base-content">Sistema de Compras</h1>
+          <p className="text-base-content/60 text-sm mt-1">TuttiFruty</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-xl shadow-md p-8">
-          <h2 className="text-lg font-semibold text-gray-700 mb-6">Iniciar sesión</h2>
+        <div className="card w-full shadow-2xl bg-base-100">
+          <div className="card-body">
+            <h2 className="card-title text-lg mb-2">Iniciar sesión</h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Usuario
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                autoComplete="username"
-                autoFocus
-                placeholder="Ingresa tu usuario"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                autoComplete="current-password"
-                placeholder="Ingresa tu contraseña"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-                {error}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Usuario</span>
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  autoComplete="username"
+                  autoFocus
+                  placeholder="Ingresa tu usuario"
+                  className="input input-bordered w-full focus:input-primary"
+                />
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold py-3 rounded-lg shadow transition disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                'Ingresando...'
-              ) : (
-                <>
-                  <LogIn size={18} /> Ingresar
-                </>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Contraseña</span>
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  placeholder="Ingresa tu contraseña"
+                  className="input input-bordered w-full focus:input-primary"
+                />
+              </div>
+
+              {error && (
+                <div role="alert" className="alert alert-error py-2.5 text-sm">
+                  <span>{error}</span>
+                </div>
               )}
-            </button>
-          </form>
+
+              <div className="form-control mt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn btn-primary w-full gap-2"
+                >
+                  {loading ? (
+                    <span className="loading loading-spinner loading-sm" />
+                  ) : (
+                    <LogIn size={18} />
+                  )}
+                  {loading ? 'Ingresando...' : 'Ingresar'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
-        <p className="text-center text-gray-400 text-xs mt-6">
-          &copy; {new Date().getFullYear()} MVP GestionComrpas TuttiFruty
+        <p className="text-base-content/40 text-xs mt-2">
+          &copy; {new Date().getFullYear()} MVP GestionCompras TuttiFruty
         </p>
       </div>
     </div>

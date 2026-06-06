@@ -29,84 +29,81 @@ function Navbar() {
   const { user, logout } = useAuth();
 
   return (
-    <nav className="bg-green-700 text-white shadow-md">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
-        {/* Logo */}
-        <Link to="/" className="font-bold text-xl flex items-center gap-2 shrink-0">
-          <ShoppingCart size={22} /> GestionOC
+    <div className="navbar bg-primary text-primary-content shadow-md px-4 min-h-[56px]">
+      {/* Logo */}
+      <div className="navbar-start">
+        <Link to="/" className="btn btn-ghost text-lg font-bold gap-2 px-2">
+          <ShoppingCart size={20} /> GestionOC
         </Link>
+      </div>
 
-        {/* Links principales */}
-        <ul className="flex gap-1 flex-wrap items-center flex-grow">
+      {/* Links centrales */}
+      <div className="navbar-center hidden md:flex">
+        <ul className="menu menu-horizontal gap-0.5 px-1 text-sm">
           <li>
-            <Link to="/" className="hover:bg-green-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition">
-              <LayoutDashboard size={16} /> Dashboard
+            <Link to="/" className="gap-1.5 rounded-lg">
+              <LayoutDashboard size={15} /> Dashboard
             </Link>
           </li>
           <li>
-            <Link to="/productos" className="hover:bg-green-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition">
-              <PackageOpen size={16} /> Productos
+            <Link to="/productos" className="gap-1.5 rounded-lg">
+              <PackageOpen size={15} /> Productos
             </Link>
           </li>
           <li>
-            <Link to="/ordenes" className="hover:bg-green-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition">
-              <ClipboardList size={16} /> Órdenes
+            <Link to="/ordenes" className="gap-1.5 rounded-lg">
+              <ClipboardList size={15} /> Órdenes
             </Link>
           </li>
           {(user?.rol === 'ADMIN' || user?.rol === 'CREADOR_OC') && (
             <li>
-              <Link
-                to="/ordenes/nueva"
-                className="hover:bg-green-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition"
-              >
-                <PlusCircle size={16} /> Nueva Orden
+              <Link to="/ordenes/nueva" className="gap-1.5 rounded-lg">
+                <PlusCircle size={15} /> Nueva Orden
               </Link>
             </li>
           )}
           {(user?.rol === 'ADMIN' || user?.rol === 'CREADOR_OC') && (
             <li>
-              <Link
-                to="/proveedores"
-                className="hover:bg-green-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition"
-              >
-                <Truck size={16} /> Proveedores
+              <Link to="/proveedores" className="gap-1.5 rounded-lg">
+                <Truck size={15} /> Proveedores
               </Link>
             </li>
           )}
           {user?.rol === 'ADMIN' && (
             <li>
-              <Link
-                to="/admin"
-                className="hover:bg-green-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition"
-              >
-                <ShieldCheck size={16} /> Admin
+              <Link to="/admin" className="gap-1.5 rounded-lg">
+                <ShieldCheck size={15} /> Admin
               </Link>
             </li>
           )}
         </ul>
+      </div>
 
-        {/* Usuario y logout */}
+      {/* Usuario y logout */}
+      <div className="navbar-end gap-2">
         {user && (
-          <div className="flex items-center gap-3 shrink-0">
+          <>
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold leading-tight">{user.nombre}</p>
-              <p className="text-xs text-green-200">{ROL_LABELS[user.rol] ?? user.rol}</p>
+              <p className="text-xs opacity-70">{ROL_LABELS[user.rol] ?? user.rol}</p>
             </div>
-            <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-              <User size={16} />
+            <div className="avatar placeholder">
+              <div className="bg-primary-content/20 text-primary-content rounded-full w-8">
+                <User size={16} />
+              </div>
             </div>
             <button
               onClick={logout}
               title="Cerrar sesión"
-              className="flex items-center gap-1.5 hover:bg-green-600 px-2 py-1.5 rounded-md text-sm transition"
+              className="btn btn-ghost btn-sm gap-1.5"
             >
-              <LogOut size={16} />
+              <LogOut size={15} />
               <span className="hidden sm:inline">Salir</span>
             </button>
-          </div>
+          </>
         )}
       </div>
-    </nav>
+    </div>
   );
 }
 
