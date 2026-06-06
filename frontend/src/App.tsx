@@ -1,7 +1,7 @@
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
 import {
   ShoppingCart, PackageOpen, LayoutDashboard,
-  PlusCircle, ClipboardList, ShieldCheck, LogOut, User,
+  PlusCircle, ClipboardList, ShieldCheck, LogOut, User, Truck,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -15,6 +15,7 @@ import EditarOrden from './pages/EditarOrden';
 import ModoCompra from './pages/ModoCompra';
 import Recepcion from './pages/Recepcion';
 import Admin from './pages/Admin';
+import Proveedores from './pages/Proveedores';
 
 const ROL_LABELS: Record<string, string> = {
   ADMIN: 'Administrador',
@@ -58,6 +59,16 @@ function Navbar() {
                 className="hover:bg-green-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition"
               >
                 <PlusCircle size={16} /> Nueva Orden
+              </Link>
+            </li>
+          )}
+          {(user?.rol === 'ADMIN' || user?.rol === 'CREADOR_OC') && (
+            <li>
+              <Link
+                to="/proveedores"
+                className="hover:bg-green-600 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition"
+              >
+                <Truck size={16} /> Proveedores
               </Link>
             </li>
           )}
@@ -119,6 +130,7 @@ function AppShell() {
           <Route path="/ordenes/:id/editar" element={<EditarOrden />} />
           <Route path="/compra/:id" element={<ModoCompra />} />
           <Route path="/recepcion/:id" element={<Recepcion />} />
+          <Route path="/proveedores" element={<Proveedores />} />
           <Route
             path="/admin"
             element={

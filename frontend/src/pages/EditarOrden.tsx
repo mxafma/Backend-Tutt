@@ -234,20 +234,6 @@ export default function EditarOrden() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Lugar de Compra <span className="text-gray-400 font-normal">(si aplica)</span>
-              </label>
-              <input
-                type="text"
-                name="lugarCompra"
-                value={orden.lugarCompra || ''}
-                onChange={handleOrdenChange}
-                placeholder="Ej: Mercado Lo Valledor, Galpón 3"
-                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
-              />
-            </div>
-
-            <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Encargado de Compra</label>
               <select
                 name="compradorAsignadoId"
