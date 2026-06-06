@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { Producto } from '../types';
-import { PackageOpen, PlusCircle, X, Check, Pencil } from 'lucide-react';
+import { PackageOpen, PlusCircle, X, Check, Pencil, Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const FORMATOS_SUGERIDOS = ['Caja', 'Malla', 'Saco', 'Bandeja', 'Unidad', 'Kilo', 'Paquete'];
 
@@ -14,6 +15,7 @@ const formVacio = (): Omit<Producto, 'id'> => ({
 });
 
 export default function Productos() {
+  const { user } = useAuth();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +90,16 @@ export default function Productos() {
     setForm(formVacio());
     setEditandoId(null);
     setMostrarForm(false);
+  };
+
+  const desactivar = async (p: Producto) => {
+    if (!confirm(`¿Eliminar "${p.nombre}"? El producto quedará inactivo.`)) return;
+    try {
+      await api.patch(`/productos/${p.id}/desactivar`);
+      setProductos(prev => prev.filter(x => x.id !== p.id));
+    } catch {
+      alert('Error al eliminar el producto.');
+    }
   };
 
   return (
@@ -236,12 +248,22 @@ export default function Productos() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => iniciarEdicion(p)}
-                        className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition ml-auto"
-                      >
-                        <Pencil size={13} /> Editar
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => iniciarEdicion(p)}
+                          className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"
+                        >
+                          <Pencil size={13} /> Editar
+                        </button>
+                        {user?.rol === 'ADMIN' && (
+                          <button
+                            onClick={() => desactivar(p)}
+                            className="flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition"
+                          >
+                            <Trash2 size={13} /> Eliminar
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
