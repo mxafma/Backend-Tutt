@@ -17,12 +17,15 @@ export default function ProductoPicker({ productos, seleccionado, onSelect, onCl
   const [creando, setCreando] = useState(false);
   const [nombreNuevo, setNombreNuevo] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [indiceFocused, setIndiceFocused] = useState(-1);
   const ref = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setAbierto(false);
+        setIndiceFocused(-1);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -30,6 +33,17 @@ export default function ProductoPicker({ productos, seleccionado, onSelect, onCl
   }, []);
 
   const activos = productos.filter(p => p.activo !== false);
+
+  useEffect(() => {
+    setIndiceFocused(-1);
+  }, [busqueda]);
+
+  useEffect(() => {
+    if (listRef.current && indiceFocused >= 0) {
+      const items = listRef.current.querySelectorAll('button');
+      items[indiceFocused]?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [indiceFocused]);
 
   const filtrados = busqueda.length > 0
     ? activos.filter(p => p.nombre.toLowerCase().includes(busqueda.toLowerCase())).slice(0, 10)
@@ -46,7 +60,32 @@ export default function ProductoPicker({ productos, seleccionado, onSelect, onCl
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setBusqueda(e.target.value);
     setAbierto(true);
+    setIndiceFocused(-1);
     if (seleccionado) onClear();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!abierto) return;
+    const totalItems = filtrados.length + (busqueda && !coincideExacto ? 1 : 0);
+    if (totalItems === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setIndiceFocused(prev => (prev + 1) % totalItems);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setIndiceFocused(prev => (prev - 1 + totalItems) % totalItems);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (indiceFocused >= 0 && indiceFocused < filtrados.length) {
+        seleccionar(filtrados[indiceFocused]);
+      } else if (indiceFocused === filtrados.length && busqueda && !coincideExacto) {
+        abrirFormNuevo();
+      }
+    } else if (e.key === 'Escape') {
+      setAbierto(false);
+      setIndiceFocused(-1);
+    }
   };
 
   const abrirFormNuevo = () => {
@@ -94,6 +133,7 @@ export default function ProductoPicker({ productos, seleccionado, onSelect, onCl
           value={busqueda}
           onChange={handleChange}
           onFocus={() => setAbierto(true)}
+          onKeyDown={handleKeyDown}
           placeholder="Buscar producto..."
           className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 outline-none"
           autoComplete="off"
@@ -101,14 +141,17 @@ export default function ProductoPicker({ productos, seleccionado, onSelect, onCl
       )}
 
       {abierto && !seleccionado && (
-        <div className="absolute z-30 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-52 overflow-y-auto">
+        <div ref={listRef} className="absolute z-30 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-52 overflow-y-auto">
           {filtrados.length > 0 ? (
-            filtrados.map(p => (
+            filtrados.map((p, idx) => (
               <button
                 key={p.id}
                 type="button"
                 onMouseDown={() => seleccionar(p)}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-green-50 hover:text-green-700 border-b border-gray-100 last:border-0"
+                onMouseEnter={() => setIndiceFocused(idx)}
+                className={`w-full text-left px-3 py-2 text-sm border-b border-gray-100 last:border-0 ${
+                  indiceFocused === idx ? 'bg-green-100 text-green-800' : 'hover:bg-green-50 hover:text-green-700'
+                }`}
               >
                 {p.nombre}
               </button>
@@ -120,7 +163,10 @@ export default function ProductoPicker({ productos, seleccionado, onSelect, onCl
             <button
               type="button"
               onMouseDown={abrirFormNuevo}
-              className="w-full text-left px-3 py-2 text-sm text-blue-600 font-semibold hover:bg-blue-50 border-t border-gray-200 flex items-center gap-1.5"
+              onMouseEnter={() => setIndiceFocused(filtrados.length)}
+              className={`w-full text-left px-3 py-2 text-sm text-blue-600 font-semibold border-t border-gray-200 flex items-center gap-1.5 ${
+                indiceFocused === filtrados.length ? 'bg-blue-100' : 'hover:bg-blue-50'
+              }`}
             >
               <PlusCircle size={14} /> Crear "{busqueda}"
             </button>
