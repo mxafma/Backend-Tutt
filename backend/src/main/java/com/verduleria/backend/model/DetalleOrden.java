@@ -53,4 +53,6 @@ public class DetalleOrden {
     private Double margenResultante;
 
     private Boolean agregadoEnMercado;
+
+    private Integer posicion;
 }

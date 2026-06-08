@@ -49,6 +49,7 @@ public class OrdenCompra {
     private Proveedor proveedor;
 
     @OneToMany(mappedBy = "orden", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("posicion ASC")
     private List<DetalleOrden> detalles;
 
     // Campos transient para compatibilidad con el frontend (campos planos)

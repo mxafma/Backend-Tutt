@@ -51,9 +51,11 @@ public class OrdenCompraService {
 
         if (datos.getDetalles() != null) {
             List<DetalleOrden> detalles = new ArrayList<>();
+            int pos = 0;
             for (DetalleOrden d : datos.getDetalles()) {
                 d.setId(null);
                 d.setOrden(orden);
+                d.setPosicion(pos++);
                 if (d.getEstadoProducto() == null) d.setEstadoProducto("PENDIENTE");
                 if (d.getAgregadoEnMercado() == null) d.setAgregadoEnMercado(false);
                 resolverProducto(d);
@@ -79,9 +81,11 @@ public class OrdenCompraService {
 
         orden.getDetalles().clear();
         if (datos.getDetalles() != null) {
+            int pos = 0;
             for (DetalleOrden d : datos.getDetalles()) {
                 d.setId(null);
                 d.setOrden(orden);
+                d.setPosicion(pos++);
                 if (d.getEstadoProducto() == null) d.setEstadoProducto("PENDIENTE");
                 if (d.getAgregadoEnMercado() == null) d.setAgregadoEnMercado(false);
                 resolverProducto(d);

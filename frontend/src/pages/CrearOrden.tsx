@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Producto, DetalleOrden, OrdenCompra, Proveedor, TipoCompra, Usuario } from '../types';
-import { PlusCircle, Trash2, Save, CheckCircle } from 'lucide-react';
+import { PlusCircle, Trash2, Save, CheckCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import ProductoPicker from '../components/ProductoPicker';
 import { getFormatos } from '../utils/formatos';
 
@@ -135,6 +135,16 @@ export default function CrearOrden() {
       ...prev,
       detalles: (prev.detalles || []).filter((_, i) => i !== index),
     }));
+  };
+
+  const moverDetalle = (index: number, direccion: -1 | 1) => {
+    setOrden(prev => {
+      const detalles = [...(prev.detalles || [])];
+      const destino = index + direccion;
+      if (destino < 0 || destino >= detalles.length) return prev;
+      [detalles[index], detalles[destino]] = [detalles[destino], detalles[index]];
+      return { ...prev, detalles };
+    });
   };
 
   const guardarOrden = async (estado: 'BORRADOR' | 'LISTA_PARA_COMPRAR') => {
@@ -368,6 +378,7 @@ export default function CrearOrden() {
                     Cant. Solicitada
                   </th>
                   <th className="p-3 text-sm font-semibold text-gray-600 text-center">Estado</th>
+                  <th className="p-3 text-sm font-semibold text-gray-600 text-center">Orden</th>
                   <th className="p-3"></th>
                 </tr>
               </thead>
@@ -397,6 +408,28 @@ export default function CrearOrden() {
                         </span>
                       </td>
                       <td className="p-3 text-center">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => moverDetalle(index, -1)}
+                            disabled={index === 0}
+                            className="text-gray-400 hover:text-gray-700 disabled:opacity-20"
+                            title="Mover arriba"
+                          >
+                            <ArrowUp size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moverDetalle(index, 1)}
+                            disabled={index === (orden.detalles?.length ?? 0) - 1}
+                            className="text-gray-400 hover:text-gray-700 disabled:opacity-20"
+                            title="Mover abajo"
+                          >
+                            <ArrowDown size={15} />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="p-3 text-center">
                         <button
                           type="button"
                           onClick={() => eliminarDetalle(index)}
@@ -410,7 +443,7 @@ export default function CrearOrden() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-400 italic">
+                    <td colSpan={6} className="p-8 text-center text-gray-400 italic">
                       Aún no hay productos en la orden. Agrega el primero arriba.
                     </td>
                   </tr>
@@ -419,7 +452,7 @@ export default function CrearOrden() {
               {orden.detalles && orden.detalles.length > 0 && (
                 <tfoot className="bg-gray-50">
                   <tr>
-                    <td colSpan={5} className="p-3 text-sm text-gray-500">
+                    <td colSpan={6} className="p-3 text-sm text-gray-500">
                       {orden.detalles.length} producto
                       {orden.detalles.length !== 1 ? 's' : ''} solicitado
                       {orden.detalles.length !== 1 ? 's' : ''}
