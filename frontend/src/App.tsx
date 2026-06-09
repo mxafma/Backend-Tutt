@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import {
   ShoppingCart, PackageOpen, LayoutDashboard,
   PlusCircle, ClipboardList, ShieldCheck, LogOut, User, Truck,
-  Sun, Moon,
+  Sun, Moon, ExternalLink,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -89,6 +89,16 @@ function Navbar() {
               </Link>
             </li>
           )}
+          <li>
+            <a
+              href="https://consultas-odepa-cfdu.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="gap-1.5 rounded-lg"
+            >
+              <ExternalLink size={15} /> Consultas
+            </a>
+          </li>
         </ul>
       </div>
 
