@@ -4,6 +4,7 @@ import api from '../services/api';
 import { OrdenCompra } from '../types';
 import { ArrowLeft, CheckCircle, Plus } from 'lucide-react';
 import { getFormatos } from '../utils/formatos';
+import { calcularPrecios as calcular, DatosCalculoPrecio } from '../utils/precios';
 
 // lista cargada desde utils/formatos (editable en /productos)
 
@@ -15,57 +16,7 @@ const ESTADO_LABEL: Record<string, { label: string; cls: string }> = {
   PENDIENTE:         { label: 'Pendiente',        cls: 'bg-gray-100 text-gray-600' },
 };
 
-const redondearDecena = (valor: number): number => Math.floor(valor / 10) * 10;
-
-interface DetalleRecepcion {
-  cantidadComprada: number;
-  costoTotal: number;
-  factura: boolean;
-  cantidadInterna: number;
-  margenSugerido: number;
-  precioFinalEditado: number;
-}
-
-interface Calculos {
-  costoConsiderado: number;
-  totalInterno: number;
-  costoUnitario: number;
-  precioSugerido: number;
-  margenResultante: number;
-  unidadLabel: string;
-}
-
-function calcular(edit: DetalleRecepcion): Calculos {
-  const costoConsiderado = edit.factura
-    ? edit.costoTotal
-    : Math.round(edit.costoTotal * 1.19);
-
-  const totalInterno =
-    edit.cantidadComprada > 0 && edit.cantidadInterna > 0
-      ? edit.cantidadComprada * edit.cantidadInterna
-      : 0;
-
-  const costoUnitario =
-    totalInterno > 0
-      ? costoConsiderado / totalInterno
-      : edit.cantidadComprada > 0
-      ? costoConsiderado / edit.cantidadComprada
-      : 0;
-
-  const precioSugerido =
-    costoUnitario > 0 && edit.margenSugerido < 100
-      ? redondearDecena(costoUnitario / (1 - edit.margenSugerido / 100))
-      : 0;
-
-  const margenResultante =
-    edit.precioFinalEditado > 0 && costoUnitario > 0
-      ? ((edit.precioFinalEditado - costoUnitario) / edit.precioFinalEditado) * 100
-      : 0;
-
-  const unidadLabel = totalInterno > 0 ? 'unidad' : 'formato';
-
-  return { costoConsiderado, totalInterno, costoUnitario, precioSugerido, margenResultante, unidadLabel };
-}
+type DetalleRecepcion = DatosCalculoPrecio;
 
 export default function Recepcion() {
   const { id } = useParams<{ id: string }>();

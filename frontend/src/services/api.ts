@@ -186,7 +186,7 @@ api.post = async (url: string, data?: any, config?: any) => {
       detalles: (data.detalles || []).map((d: any) => ({
         ...d,
         id: nextId++,
-        estadoProducto: 'PENDIENTE',
+        estadoProducto: d.estadoProducto || 'PENDIENTE',
         nombreProductoSnapshot: d.producto?.nombre || d.nombreProductoSnapshot,
       })),
     };

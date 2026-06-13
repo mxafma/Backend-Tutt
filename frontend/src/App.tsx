@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import {
   ShoppingCart, PackageOpen, LayoutDashboard,
   PlusCircle, ClipboardList, ShieldCheck, LogOut, User, Truck,
-  Sun, Moon, ExternalLink,
+  Sun, Moon, ExternalLink, Receipt,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -15,6 +15,7 @@ import CrearOrden from './pages/CrearOrden';
 import OrdenDetalle from './pages/OrdenDetalle';
 import EditarOrden from './pages/EditarOrden';
 import ModoCompra from './pages/ModoCompra';
+import CompraDirecta from './pages/CompraDirecta';
 import Recepcion from './pages/Recepcion';
 import Admin from './pages/Admin';
 import Proveedores from './pages/Proveedores';
@@ -72,6 +73,13 @@ function Navbar() {
             <li>
               <Link to="/ordenes/nueva" className="gap-1.5 rounded-lg">
                 <PlusCircle size={15} /> Nueva Orden
+              </Link>
+            </li>
+          )}
+          {(user?.rol === 'ADMIN' || user?.rol === 'CREADOR_OC' || user?.rol === 'RECEPCION') && (
+            <li>
+              <Link to="/compra-directa" className="gap-1.5 rounded-lg">
+                <Receipt size={15} /> Compra Directa
               </Link>
             </li>
           )}
@@ -159,6 +167,14 @@ function AppShell() {
           <Route path="/ordenes/:id" element={<OrdenDetalle />} />
           <Route path="/ordenes/:id/editar" element={<EditarOrden />} />
           <Route path="/compra/:id" element={<ModoCompra />} />
+          <Route
+            path="/compra-directa"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'CREADOR_OC', 'RECEPCION']}>
+                <CompraDirecta />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/recepcion/:id" element={<Recepcion />} />
           <Route path="/proveedores" element={<Proveedores />} />
           <Route path="/productos/:id/historial" element={<HistorialProducto />} />
