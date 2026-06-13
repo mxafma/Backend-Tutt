@@ -272,14 +272,15 @@ export default function ModoCompra() {
     });
   };
 
-  const guardarDetalle = async (detalleId: number, key: string) => {
-    const edit = edits[key];
-    if (!edit) return;
-    try {
-      await api.patch(`/compras/detalles/${detalleId}`, edit);
-    } catch (err) {
-      console.error('Error al guardar detalle:', err);
+  // Infiere el estado a partir del costo ingresado cuando el comprador no marcó
+  // nada a mano. Si puso un costo, el producto se considera comprado (parcial si
+  // compró menos de lo solicitado). Si no hay costo, queda en PENDIENTE.
+  const inferirEstado = (edit: DetalleEdit, cantidadSolicitada: number): EstadoProductoOrden => {
+    if (edit.estadoProducto !== 'PENDIENTE') return edit.estadoProducto;
+    if ((edit.costoTotal ?? 0) > 0) {
+      return (edit.cantidadComprada ?? 0) >= cantidadSolicitada ? 'COMPRADO' : 'COMPRA_PARCIAL';
     }
+    return 'PENDIENTE';
   };
 
   const aplicarOrden = (criterio: Exclude<CriterioOrden, 'personalizado'>) => {
@@ -369,9 +370,24 @@ export default function ModoCompra() {
   };
 
   const finalizarCompra = async () => {
+    // Inferir estado por costo para los productos que el comprador no marcó a mano.
+    const edicionesInferidas: Record<string, DetalleEdit> = {};
+    orden!.detalles.forEach((d, i) => {
+      const key = String(d.id ?? `idx_${i}`);
+      const edit = edits[key];
+      if (!edit) return;
+      const estadoInferido = inferirEstado(edit, d.cantidadSolicitada);
+      edicionesInferidas[key] =
+        estadoInferido !== edit.estadoProducto
+          ? { ...edit, estadoProducto: estadoInferido }
+          : edit;
+    });
+    setEdits(edicionesInferidas);
+
+    // Tras inferir, solo siguen en PENDIENTE los que no tienen costo ni estado.
     const pendientes = orden!.detalles.filter((d, i) => {
       const key = String(d.id ?? `idx_${i}`);
-      return (edits[key]?.estadoProducto ?? 'PENDIENTE') === 'PENDIENTE';
+      return (edicionesInferidas[key]?.estadoProducto ?? 'PENDIENTE') === 'PENDIENTE';
     });
 
     if (pendientes.length > 0) {
@@ -379,7 +395,7 @@ export default function ModoCompra() {
         .map(d => `• ${d.nombreProductoSnapshot || d.producto?.nombre}`)
         .join('\n');
       const continuar = confirm(
-        `Hay ${pendientes.length} producto(s) sin marcar estado:\n${lista}\n\n¿Deseas finalizar de todas formas?`
+        `Hay ${pendientes.length} producto(s) sin costo ni estado:\n${lista}\n\n¿Deseas finalizar de todas formas?`
       );
       if (!continuar) return;
     }
@@ -388,15 +404,14 @@ export default function ModoCompra() {
 
     setGuardando(true);
     try {
-      if (orden?.detalles) {
-        const saves = orden.detalles
-          .filter(d => d.id !== undefined)
-          .map((d, i) => {
-            const key = String(d.id ?? `idx_${i}`);
-            return guardarDetalle(d.id!, key);
-          });
-        await Promise.all(saves);
-      }
+      const saves = orden!.detalles
+        .filter(d => d.id !== undefined)
+        .map(d => {
+          const edit = edicionesInferidas[String(d.id)];
+          if (!edit) return Promise.resolve();
+          return api.patch(`/compras/detalles/${d.id}`, edit);
+        });
+      await Promise.all(saves);
       await api.patch(`/compras/ordenes/${id}/finalizar`, {});
       alert('¡Compra finalizada exitosamente!');
       navigate(`/ordenes/${id}`);
