@@ -5,7 +5,7 @@ import { Producto, Proveedor, Usuario, TipoCompra, OrdenCompra } from '../types'
 import { Trash2, CheckCircle, Receipt, ArrowLeft } from 'lucide-react';
 import ProductoPicker from '../components/ProductoPicker';
 import { getFormatos } from '../utils/formatos';
-import { calcularPrecios } from '../utils/precios';
+import { calcularPrecios, DatosCalculoPrecio } from '../utils/precios';
 
 const TIPO_COMPRA_LABELS: Record<TipoCompra, string> = {
   MERCADO: 'Mercado',
@@ -34,6 +34,22 @@ export default function CompraDirecta() {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [guardando, setGuardando] = useState(false);
+
+  // Modo factura: los costos se ingresan netos y el sistema agrega el IVA (×1,19).
+  // Se recuerda la preferencia entre sesiones.
+  const [facturaNeto, setFacturaNeto] = useState<boolean>(
+    () => localStorage.getItem('compra_directa_factura_neto') === '1'
+  );
+  useEffect(() => {
+    localStorage.setItem('compra_directa_factura_neto', facturaNeto ? '1' : '0');
+  }, [facturaNeto]);
+
+  // Costo con IVA aplicado cuando el modo factura está activo (el ingresado es neto).
+  const costoConIva = (neto: number) => Math.round(neto * 1.19);
+
+  // Adapta un ítem para el cálculo: en modo factura aplica IVA y fuerza factura=true.
+  const itemParaCalculo = (it: ItemCompra): DatosCalculoPrecio =>
+    facturaNeto ? { ...it, costoTotal: costoConIva(it.costoTotal), factura: true } : it;
 
   const [cabecera, setCabecera] = useState({
     fechaCompraPlanificada: new Date().toISOString().split('T')[0],
@@ -106,7 +122,7 @@ export default function CompraDirecta() {
       prev.map(it => {
         if (it.localId !== localId) return it;
         const nuevo = { ...it, margenSugerido: margen };
-        const { precioSugerido } = calcularPrecios(nuevo);
+        const { precioSugerido } = calcularPrecios(itemParaCalculo(nuevo));
         return { ...nuevo, precioFinalEditado: it.precioFinalEditado || precioSugerido };
       })
     );
@@ -117,9 +133,9 @@ export default function CompraDirecta() {
     setItems(prev =>
       prev.map(it => {
         if (it.localId !== localId) return it;
-        const { precioSugerido: viejoSugerido } = calcularPrecios(it);
+        const { precioSugerido: viejoSugerido } = calcularPrecios(itemParaCalculo(it));
         const nuevo = { ...it, [campo]: valor };
-        const { precioSugerido: nuevoSugerido } = calcularPrecios(nuevo);
+        const { precioSugerido: nuevoSugerido } = calcularPrecios(itemParaCalculo(nuevo));
         const precioFinalEditado =
           it.precioFinalEditado === 0 || it.precioFinalEditado === viejoSugerido
             ? nuevoSugerido
@@ -129,7 +145,10 @@ export default function CompraDirecta() {
     );
   };
 
-  const totalGeneral = items.reduce((s, it) => s + (it.costoTotal || 0), 0);
+  const totalGeneral = items.reduce(
+    (s, it) => s + (facturaNeto ? costoConIva(it.costoTotal || 0) : (it.costoTotal || 0)),
+    0
+  );
 
   const guardarCompra = async () => {
     if (items.length === 0) {
@@ -162,7 +181,11 @@ export default function CompraDirecta() {
       observaciones: cabecera.observaciones || undefined,
       total: totalGeneral,
       detalles: items.map(it => {
-        const c = calcularPrecios(it);
+        const c = calcularPrecios(itemParaCalculo(it));
+        // En modo factura se guarda el costo con IVA y factura=true, para que el
+        // cálculo sea consistente si la orden se reabre en Recepción.
+        const costoFinal = facturaNeto ? costoConIva(it.costoTotal) : it.costoTotal;
+        const facturaFinal = facturaNeto ? true : it.factura;
         return {
           producto: it.producto.id
             ? { id: it.producto.id, nombre: it.producto.nombre }
@@ -171,8 +194,8 @@ export default function CompraDirecta() {
           formato: it.formato,
           cantidadSolicitada: it.cantidadComprada,
           cantidadComprada: it.cantidadComprada,
-          costoTotal: it.costoTotal,
-          factura: it.factura,
+          costoTotal: costoFinal,
+          factura: facturaFinal,
           comentario: it.comentario.trim() || undefined,
           estadoProducto: 'COMPRADO',
           cantidadInterna: it.cantidadInterna || undefined,
@@ -281,6 +304,31 @@ export default function CompraDirecta() {
               />
             </div>
           </div>
+
+          {/* Modo factura: ingresar precios netos y agregar IVA automáticamente */}
+          <label
+            className={`mt-5 flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+              facturaNeto
+                ? 'bg-blue-50 border-blue-400'
+                : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={facturaNeto}
+              onChange={e => setFacturaNeto(e.target.checked)}
+              className="mt-0.5 h-5 w-5 accent-blue-600 shrink-0"
+            />
+            <span className="text-sm">
+              <span className="font-semibold text-gray-800">
+                Compra con factura — ingreso precios netos
+              </span>
+              <span className="block text-gray-500 mt-0.5">
+                Escribe el <strong>neto</strong> de la factura y el sistema suma el IVA (×1,19) y
+                marca cada producto como "Con factura" automáticamente.
+              </span>
+            </span>
+          </label>
         </div>
 
         {/* Agregar producto */}
@@ -314,7 +362,7 @@ export default function CompraDirecta() {
           <div className="space-y-5">
             {items.map(it => {
               const { costoConsiderado, totalInterno, costoUnitario, precioSugerido, margenResultante, unidadLabel } =
-                calcularPrecios(it);
+                calcularPrecios(itemParaCalculo(it));
               const tieneCalculo = costoUnitario > 0;
 
               const margenColor =
@@ -399,7 +447,9 @@ export default function CompraDirecta() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Costo total ($)</label>
+                          <label className="block text-xs text-gray-500 mb-1">
+                            {facturaNeto ? 'Costo neto factura ($)' : 'Costo total ($)'}
+                          </label>
                           <input
                             type="number"
                             value={it.costoTotal || ''}
@@ -412,18 +462,25 @@ export default function CompraDirecta() {
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleDatoCompraChange(it.localId, 'factura', !it.factura)}
-                        className={`w-full py-2.5 rounded-lg border-2 font-semibold text-sm flex items-center justify-center gap-2 transition-colors ${
-                          it.factura
-                            ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
-                        }`}
-                      >
-                        <CheckCircle size={15} />
-                        {it.factura ? 'Con Factura' : 'Sin Factura'}
-                      </button>
+                      {facturaNeto ? (
+                        <div className="w-full py-2.5 rounded-lg border-2 border-blue-200 bg-blue-50 text-blue-700 font-semibold text-sm flex items-center justify-center gap-2">
+                          <CheckCircle size={15} />
+                          Con Factura (IVA agregado automáticamente)
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleDatoCompraChange(it.localId, 'factura', !it.factura)}
+                          className={`w-full py-2.5 rounded-lg border-2 font-semibold text-sm flex items-center justify-center gap-2 transition-colors ${
+                            it.factura
+                              ? 'bg-blue-600 border-blue-600 text-white'
+                              : 'bg-white border-gray-300 text-gray-600 hover:border-gray-400'
+                          }`}
+                        >
+                          <CheckCircle size={15} />
+                          {it.factura ? 'Con Factura' : 'Sin Factura'}
+                        </button>
+                      )}
 
                       <div>
                         <label className="block text-xs text-gray-500 mb-1">
@@ -440,11 +497,24 @@ export default function CompraDirecta() {
 
                       {tieneCalculo && (
                         <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 text-xs space-y-1.5">
-                          {!it.factura && (
-                            <div className="flex justify-between text-orange-600">
-                              <span>Costo considerado (×1,19)</span>
-                              <strong>${costoConsiderado.toLocaleString('es-CL')}</strong>
-                            </div>
+                          {facturaNeto ? (
+                            <>
+                              <div className="flex justify-between text-gray-600">
+                                <span>Neto factura</span>
+                                <strong>${it.costoTotal.toLocaleString('es-CL')}</strong>
+                              </div>
+                              <div className="flex justify-between text-orange-600">
+                                <span>+ IVA 19% → considerado</span>
+                                <strong>${costoConsiderado.toLocaleString('es-CL')}</strong>
+                              </div>
+                            </>
+                          ) : (
+                            !it.factura && (
+                              <div className="flex justify-between text-orange-600">
+                                <span>Costo considerado (×1,19)</span>
+                                <strong>${costoConsiderado.toLocaleString('es-CL')}</strong>
+                              </div>
+                            )
                           )}
                           {totalInterno > 0 && (
                             <div className="flex justify-between text-gray-600">
@@ -545,7 +615,7 @@ export default function CompraDirecta() {
               {items.length} producto{items.length !== 1 ? 's' : ''}
             </span>
             <span className="text-lg">
-              Total compra:{' '}
+              Total compra{facturaNeto ? ' (con IVA)' : ''}:{' '}
               <strong className="text-gray-800">${totalGeneral.toLocaleString('es-CL')}</strong>
             </span>
           </div>
