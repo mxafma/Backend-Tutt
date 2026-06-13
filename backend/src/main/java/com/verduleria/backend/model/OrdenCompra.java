@@ -20,6 +20,8 @@ public class OrdenCompra {
     @Column(nullable = false)
     private LocalDateTime fechaCreacion = LocalDateTime.now();
 
+    private LocalDateTime fechaActualizacion;
+
     private LocalDate fechaCompraPlanificada;
 
     private LocalDateTime fechaCompraReal;
@@ -60,6 +62,17 @@ public class OrdenCompra {
     @Transient private String encargadoCompra;
     @Transient private Long proveedorId;
     @Transient private String proveedorNombre;
+
+    @PrePersist
+    protected void onCreate() {
+        if (fechaCreacion == null) fechaCreacion = LocalDateTime.now();
+        fechaActualizacion = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        fechaActualizacion = LocalDateTime.now();
+    }
 
     public Long getCreadorId() { return creador != null ? creador.getId() : creadorId; }
     public String getCreadorNombre() { return creador != null ? creador.getNombre() : creadorNombre; }

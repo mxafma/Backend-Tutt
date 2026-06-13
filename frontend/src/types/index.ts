@@ -79,6 +79,7 @@ export interface DetalleOrden {
 export interface OrdenCompra {
   id?: number;
   fechaCreacion?: string;
+  fechaActualizacion?: string;
   fechaCompraPlanificada: string;
   fechaCompraReal?: string | null;
   creadorId?: number;
