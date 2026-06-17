@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -68,4 +69,14 @@ public class VentaArticulo {
 
     @Column(name = "fue_devuelto")
     private String fueDevuelto;
+
+    // Columna NOT NULL en la tabla; default 0.0 si el agente no la envía.
+    @Column(name = "cantidad_devuelta", nullable = false)
+    private Double cantidadDevuelta = 0.0;
+
+    @Column(name = "pagado_en")
+    private LocalDateTime pagadoEn;
+
+    @Column(name = "ganancia")
+    private BigDecimal ganancia;
 }

@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -72,6 +73,14 @@ public class VentaIngestaController {
             v.setLineaGanancia(asLong(get(fila, "lineaGanancia", "linea_ganancia", "LINEA_GANANCIA")));
             v.setFueDevuelto(asString(get(fila, "fueDevuelto", "fue_devuelto", "FUE_DEVUELTO")));
 
+            // Columna NOT NULL: solo sobrescribe el default (0.0) si viene un valor.
+            Double cantidadDevuelta = asDouble(get(fila, "cantidadDevuelta", "cantidad_devuelta", "CANTIDAD_DEVUELTA"));
+            if (cantidadDevuelta != null) {
+                v.setCantidadDevuelta(cantidadDevuelta);
+            }
+            v.setPagadoEn(asDateTime(get(fila, "pagadoEn", "pagado_en", "PAGADO_EN")));
+            v.setGanancia(asBigDecimal(get(fila, "ganancia", "GANANCIA")));
+
             repository.save(v);
             insertados++;
         }
@@ -121,6 +130,17 @@ public class VentaIngestaController {
         if (o instanceof Number n) return n.doubleValue();
         try {
             return Double.parseDouble(o.toString().trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static BigDecimal asBigDecimal(Object o) {
+        if (o == null) return null;
+        if (o instanceof BigDecimal bd) return bd;
+        if (o instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
+        try {
+            return new BigDecimal(o.toString().trim());
         } catch (NumberFormatException e) {
             return null;
         }
