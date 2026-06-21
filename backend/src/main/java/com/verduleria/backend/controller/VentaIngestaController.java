@@ -40,11 +40,13 @@ public class VentaIngestaController {
     // único sobre id, así que ON CONFLICT (id) no aplica. Se usa INSERT ... SELECT ...
     // WHERE NOT EXISTS para que insertar la cabecera sea idempotente sin alterar la
     // tabla. El último ? es el id usado en el WHERE NOT EXISTS.
+    // clientesv2_id es NOT NULL sin default (cliente real del ticket, varía por fila).
+    // Lo aporta el agente desde VT.CLIENTESV2_ID; si faltara se usa 1 (público general).
     private static final String INSERT_CABECERA_SQL = """
             INSERT INTO eleventa.ventatickets
             (id, folio, cajero_id, nombre, vendido_en, pagado_en, subtotal, impuestos,
-             total, ganancia, forma_pago, turno_id, cliente_id, numero_articulos)
-            SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?
+             total, ganancia, forma_pago, turno_id, cliente_id, numero_articulos, clientesv2_id)
+            SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
             WHERE NOT EXISTS (SELECT 1 FROM eleventa.ventatickets WHERE id = ?)
             """;
 
@@ -88,6 +90,7 @@ public class VentaIngestaController {
             Long ticketId = entry.getKey();
             List<Map<String, Object>> lineas = entry.getValue();
             Map<String, Object> cab = lineas.get(0);
+            Integer clientesv2Id = asInteger(get(cab, "clientesv2Id", "clientesv2_id", "CLIENTESV2_ID"));
 
             Object[] cabParams = new Object[]{
                     ticketId,
@@ -104,6 +107,8 @@ public class VentaIngestaController {
                     asInteger(get(cab, "turnoId", "turno_id", "TURNO_ID")),
                     asInteger(get(cab, "clienteId", "cliente_id", "CLIENTE_ID")),
                     asInteger(get(cab, "numeroArticulos", "numero_articulos", "NUMERO_ARTICULOS")),
+                    // clientesv2_id NOT NULL: valor real del agente; fallback 1 (público general).
+                    clientesv2Id != null ? clientesv2Id : 1,
                     // último ?: id para el WHERE NOT EXISTS
                     ticketId
             };
@@ -259,6 +264,12 @@ public class VentaIngestaController {
         // Formato SQL tradicional (ej. 2026-06-17 10:30:00)
         try {
             return LocalDateTime.parse(s, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        } catch (Exception ignored) {
+        }
+        // Formato SQL con fracción de segundos (ej. 2026-06-17 10:30:00.0), que es lo
+        // que produce Timestamp.toString() de Java, el formato real que envía el agente.
+        try {
+            return Timestamp.valueOf(s).toLocalDateTime();
         } catch (Exception ignored) {
         }
         return null;
