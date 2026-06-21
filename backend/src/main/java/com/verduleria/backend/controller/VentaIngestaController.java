@@ -36,12 +36,16 @@ public class VentaIngestaController {
         this.jdbc = jdbc;
     }
 
+    // La tabla eleventa.ventatickets (migrada con DBeaver) no tiene un constraint
+    // único sobre id, así que ON CONFLICT (id) no aplica. Se usa INSERT ... SELECT ...
+    // WHERE NOT EXISTS para que insertar la cabecera sea idempotente sin alterar la
+    // tabla. El último ? es el id usado en el WHERE NOT EXISTS.
     private static final String INSERT_CABECERA_SQL = """
             INSERT INTO eleventa.ventatickets
             (id, folio, cajero_id, nombre, vendido_en, pagado_en, subtotal, impuestos,
              total, ganancia, forma_pago, turno_id, cliente_id, numero_articulos)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            ON CONFLICT (id) DO NOTHING
+            SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?
+            WHERE NOT EXISTS (SELECT 1 FROM eleventa.ventatickets WHERE id = ?)
             """;
 
     private static final String INSERT_LINEA_SQL = """
@@ -99,7 +103,9 @@ public class VentaIngestaController {
                     asString(get(cab, "formaPago", "forma_pago", "FORMA_PAGO")),
                     asInteger(get(cab, "turnoId", "turno_id", "TURNO_ID")),
                     asInteger(get(cab, "clienteId", "cliente_id", "CLIENTE_ID")),
-                    asInteger(get(cab, "numeroArticulos", "numero_articulos", "NUMERO_ARTICULOS"))
+                    asInteger(get(cab, "numeroArticulos", "numero_articulos", "NUMERO_ARTICULOS")),
+                    // último ?: id para el WHERE NOT EXISTS
+                    ticketId
             };
             ticketsInsertados += jdbc.update(INSERT_CABECERA_SQL, cabParams);
 
