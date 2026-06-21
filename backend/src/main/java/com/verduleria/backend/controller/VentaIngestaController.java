@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,9 +19,12 @@ import java.util.Map;
  * Endpoints públicos (sin JWT) protegidos por API Key vía header X-API-Key,
  * validado contra la variable de entorno INGESTA_API_KEY.
  *
- * Usa JdbcTemplate con SQL nativo (NO JPA): la tabla eleventa.ventatickets_articulos
- * ya existe con datos y la deduplicación se hace con ON CONFLICT sobre el índice
- * único ux_ventatickets_articulos_ticket_producto (ticket_id, producto_codigo).
+ * Usa JdbcTemplate con SQL nativo (NO JPA): las tablas eleventa.ventatickets
+ * (cabecera) y eleventa.ventatickets_articulos (detalle) ya existen con datos.
+ * Cada POST trae filas del JOIN cabecera+detalle; el controlador las agrupa por
+ * ticketId, inserta primero la cabecera y luego cada línea. La deduplicación es a
+ * nivel de BD con ON CONFLICT (id) en la cabecera y ON CONFLICT
+ * (ticket_id, producto_codigo) en el detalle, de modo que reenviar es idempotente.
  */
 @RestController
 @RequestMapping("/api/ventas")
@@ -32,7 +36,15 @@ public class VentaIngestaController {
         this.jdbc = jdbc;
     }
 
-    private static final String INSERT_SQL = """
+    private static final String INSERT_CABECERA_SQL = """
+            INSERT INTO eleventa.ventatickets
+            (id, folio, cajero_id, nombre, vendido_en, pagado_en, subtotal, impuestos,
+             total, ganancia, forma_pago, turno_id, cliente_id, numero_articulos)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT (id) DO NOTHING
+            """;
+
+    private static final String INSERT_LINEA_SQL = """
             INSERT INTO eleventa.ventatickets_articulos
             (ticket_id, folio, cajero_id, cajero_nombre, vendido_en, pagado_en,
              ganancia, forma_pago, turno_id, cliente_id, producto_codigo,
@@ -51,41 +63,83 @@ public class VentaIngestaController {
         if (authError != null) return authError;
 
         if (filas == null || filas.isEmpty()) {
-            return ResponseEntity.ok(Map.of("insertadas", 0, "saltadas", 0));
+            return ResponseEntity.ok(Map.of("tickets", 0, "lineas", 0, "saltados", 0));
         }
 
-        int insertadas = 0;
+        // 1) Agrupar las filas del batch por ticketId, preservando el orden de llegada.
+        //    La primera fila de cada ticket aporta los datos de cabecera (todas las
+        //    filas de un mismo ticket repiten esos campos por venir del JOIN).
+        Map<Long, List<Map<String, Object>>> porTicket = new LinkedHashMap<>();
         for (Map<String, Object> fila : filas) {
-            Double cantidadDevuelta = asDouble(get(fila, "cantidadDevuelta", "cantidad_devuelta", "CANTIDAD_DEVUELTA"));
-
-            Object[] params = new Object[]{
-                    asLong(get(fila, "ticketId", "ticket_id", "TICKET_ID")),
-                    asInteger(get(fila, "folio", "FOLIO")),
-                    asInteger(get(fila, "cajeroId", "cajero_id", "CAJERO_ID")),
-                    asString(get(fila, "cajeroNombre", "cajero_nombre", "CAJERO_NOMBRE")),
-                    asTimestamp(get(fila, "vendidoEn", "vendido_en", "VENDIDO_EN")),
-                    asTimestamp(get(fila, "pagadoEn", "pagado_en", "PAGADO_EN")),
-                    asBigDecimal(get(fila, "ganancia", "GANANCIA")),
-                    asString(get(fila, "formaPago", "forma_pago", "FORMA_PAGO")),
-                    asInteger(get(fila, "turnoId", "turno_id", "TURNO_ID")),
-                    asInteger(get(fila, "clienteId", "cliente_id", "CLIENTE_ID")),
-                    asString(get(fila, "productoCodigo", "producto_codigo", "PRODUCTO_CODIGO")),
-                    asString(get(fila, "productoNombre", "producto_nombre", "PRODUCTO_NOMBRE")),
-                    asDouble(get(fila, "cantidad", "CANTIDAD")),
-                    asLong(get(fila, "precioUsado", "precio_usado", "PRECIO_USADO")),
-                    asLong(get(fila, "precioFinal", "precio_final", "PRECIO_FINAL")),
-                    asLong(get(fila, "totalArticulo", "total_articulo", "TOTAL_ARTICULO")),
-                    asLong(get(fila, "lineaGanancia", "linea_ganancia", "LINEA_GANANCIA")),
-                    asString(get(fila, "fueDevuelto", "fue_devuelto", "FUE_DEVUELTO")),
-                    // cantidad_devuelta es NOT NULL: default 0.0 si el agente no la envía.
-                    cantidadDevuelta != null ? cantidadDevuelta : 0.0
-            };
-
-            insertadas += jdbc.update(INSERT_SQL, params);
+            Long ticketId = asLong(get(fila, "ticketId", "ticket_id", "TICKET_ID"));
+            if (ticketId == null) continue; // fila sin ticket: no se puede ubicar, se ignora
+            porTicket.computeIfAbsent(ticketId, k -> new java.util.ArrayList<>()).add(fila);
         }
 
-        int saltadas = filas.size() - insertadas;
-        return ResponseEntity.ok(Map.of("insertadas", insertadas, "saltadas", saltadas));
+        int ticketsInsertados = 0;
+        int lineasInsertadas = 0;
+
+        // 2) Por cada ticket: insertar primero la cabecera y luego sus líneas.
+        for (Map.Entry<Long, List<Map<String, Object>>> entry : porTicket.entrySet()) {
+            Long ticketId = entry.getKey();
+            List<Map<String, Object>> lineas = entry.getValue();
+            Map<String, Object> cab = lineas.get(0);
+
+            Object[] cabParams = new Object[]{
+                    ticketId,
+                    asInteger(get(cab, "folio", "FOLIO")),
+                    asInteger(get(cab, "cajeroId", "cajero_id", "CAJERO_ID")),
+                    asString(get(cab, "cajeroNombre", "cajero_nombre", "NOMBRE", "nombre")),
+                    asTimestamp(get(cab, "vendidoEn", "vendido_en", "VENDIDO_EN")),
+                    asTimestamp(get(cab, "pagadoEn", "pagado_en", "PAGADO_EN")),
+                    asLong(get(cab, "subtotal", "SUBTOTAL")),
+                    asLong(get(cab, "impuestos", "IMPUESTOS")),
+                    asLong(get(cab, "total", "TOTAL")),
+                    asLong(get(cab, "ganancia", "GANANCIA")),
+                    asString(get(cab, "formaPago", "forma_pago", "FORMA_PAGO")),
+                    asInteger(get(cab, "turnoId", "turno_id", "TURNO_ID")),
+                    asInteger(get(cab, "clienteId", "cliente_id", "CLIENTE_ID")),
+                    asInteger(get(cab, "numeroArticulos", "numero_articulos", "NUMERO_ARTICULOS"))
+            };
+            ticketsInsertados += jdbc.update(INSERT_CABECERA_SQL, cabParams);
+
+            // 3) Insertar cada línea del ticket.
+            for (Map<String, Object> fila : lineas) {
+                Double cantidadDevuelta = asDouble(get(fila, "cantidadDevuelta", "cantidad_devuelta", "CANTIDAD_DEVUELTA"));
+
+                Object[] lineaParams = new Object[]{
+                        ticketId,
+                        asInteger(get(fila, "folio", "FOLIO")),
+                        asInteger(get(fila, "cajeroId", "cajero_id", "CAJERO_ID")),
+                        asString(get(fila, "cajeroNombre", "cajero_nombre", "CAJERO_NOMBRE")),
+                        asTimestamp(get(fila, "vendidoEn", "vendido_en", "VENDIDO_EN")),
+                        asTimestamp(get(fila, "pagadoEn", "pagado_en", "PAGADO_EN")),
+                        // La columna `ganancia` de la línea proviene de lineaGanancia, NO de ganancia.
+                        asLong(get(fila, "lineaGanancia", "linea_ganancia", "LINEA_GANANCIA")),
+                        asString(get(fila, "formaPago", "forma_pago", "FORMA_PAGO")),
+                        asInteger(get(fila, "turnoId", "turno_id", "TURNO_ID")),
+                        asInteger(get(fila, "clienteId", "cliente_id", "CLIENTE_ID")),
+                        asString(get(fila, "productoCodigo", "producto_codigo", "PRODUCTO_CODIGO")),
+                        asString(get(fila, "productoNombre", "producto_nombre", "PRODUCTO_NOMBRE")),
+                        asDouble(get(fila, "cantidad", "CANTIDAD")),
+                        asLong(get(fila, "precioUsado", "precio_usado", "PRECIO_USADO")),
+                        asLong(get(fila, "precioFinal", "precio_final", "PRECIO_FINAL")),
+                        asLong(get(fila, "totalArticulo", "total_articulo", "TOTAL_ARTICULO")),
+                        asLong(get(fila, "lineaGanancia", "linea_ganancia", "LINEA_GANANCIA")),
+                        asString(get(fila, "fueDevuelto", "fue_devuelto", "FUE_DEVUELTO")),
+                        // cantidad_devuelta es NOT NULL: default 0.0 si el agente no la envía.
+                        cantidadDevuelta != null ? cantidadDevuelta : 0.0
+                };
+                lineasInsertadas += jdbc.update(INSERT_LINEA_SQL, lineaParams);
+            }
+        }
+
+        // saltados = líneas del batch que ya existían (ON CONFLICT DO NOTHING).
+        int saltados = filas.size() - lineasInsertadas;
+        return ResponseEntity.ok(Map.of(
+                "tickets", ticketsInsertados,
+                "lineas", lineasInsertadas,
+                "saltados", saltados));
     }
 
     /**
