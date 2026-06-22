@@ -32,6 +32,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/ventas/**").permitAll()
+                // Histórico de precios de mercado: GET de la tabla de conversión es
+                // público (lo lee el frontend de consultas); el trigger de ingesta se
+                // protege con X-API-Key dentro del controlador, igual que /api/ventas.
+                .requestMatchers("/api/mercado/**").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().authenticated()
             )
