@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { OrdenCompra, EstadoProductoOrden } from '../types';
 import {
   CheckCircle, Minus, Plus, ArrowLeft, ShoppingBag,
-  GripVertical, AlignJustify, LayoutList,
+  GripVertical, AlignJustify, LayoutList, Save,
 } from 'lucide-react';
 import {
   DndContext,
@@ -155,6 +155,12 @@ export default function ModoCompra() {
   const [criterioOrden, setCriterioOrden] = useState<CriterioOrden>('original');
   const [scrollToKey, setScrollToKey] = useState<string | null>(null);
 
+  // Borrador local (Opción 1) + aviso al salir (Opción 4)
+  const draftKey = `oc_draft_${id}`;
+  const dirtyRef = useRef(false); // true cuando hay cambios sin finalizar
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [borradorRestaurado, setBorradorRestaurado] = useState(false);
+
   // Sensores touch-friendly: delay evita conflicto con scroll en móvil
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -165,6 +171,32 @@ export default function ModoCompra() {
   useEffect(() => {
     fetchOrden(false);
   }, [id]);
+
+  // Opción 1: autoguardar el borrador en localStorage cada vez que cambian los
+  // datos ingresados, para que sobreviva a recargas o cierres de pestaña.
+  useEffect(() => {
+    if (!orden || !dirtyRef.current || Object.keys(edits).length === 0) return;
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(edits));
+      setDraftSavedAt(
+        new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+      );
+    } catch (err) {
+      console.error('No se pudo guardar el borrador local:', err);
+    }
+  }, [edits, orden, draftKey]);
+
+  // Opción 4: avisar antes de recargar/cerrar si hay cambios sin finalizar.
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirtyRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
 
   // Inicializar ordenIds solo la primera vez (cuando está vacío)
   useEffect(() => {
@@ -254,10 +286,34 @@ export default function ModoCompra() {
         formato: d.formato ?? 'Caja',
       };
     });
+
+    // Restaurar borrador local si existe: lo ingresado por el comprador antes de
+    // recargar tiene prioridad sobre los datos (vacíos) que devuelve el backend.
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (raw) {
+        const draft = JSON.parse(raw) as Record<string, Partial<DetalleEdit>>;
+        let aplicado = false;
+        Object.keys(draft).forEach(key => {
+          if (initial[key]) {
+            initial[key] = { ...initial[key], ...draft[key] };
+            aplicado = true;
+          }
+        });
+        if (aplicado) {
+          dirtyRef.current = true; // hay datos sin finalizar -> avisar al salir
+          setBorradorRestaurado(true);
+        }
+      }
+    } catch (err) {
+      console.error('No se pudo restaurar el borrador local:', err);
+    }
+
     setEdits(initial);
   };
 
   const updateEdit = (key: string, field: keyof DetalleEdit, value: unknown) => {
+    dirtyRef.current = true;
     setEdits(prev => ({
       ...prev,
       [key]: { ...prev[key], [field]: value },
@@ -265,6 +321,7 @@ export default function ModoCompra() {
   };
 
   const marcarEstado = (key: string, estado: EstadoProductoOrden) => {
+    dirtyRef.current = true;
     setEdits(prev => {
       const actual = prev[key]?.estadoProducto;
       const nuevo: EstadoProductoOrden = actual === estado ? 'PENDIENTE' : estado;
@@ -324,6 +381,7 @@ export default function ModoCompra() {
       return;
     }
     try {
+      dirtyRef.current = true;
       await api.post(`/compras/ordenes/${id}/agregar-producto`, {
         producto: { nombre: nuevoItem.nombre },
         nombreProductoSnapshot: nuevoItem.nombre,
@@ -413,6 +471,9 @@ export default function ModoCompra() {
         });
       await Promise.all(saves);
       await api.patch(`/compras/ordenes/${id}/finalizar`, {});
+      // Compra guardada en el backend: el borrador local ya no es necesario.
+      dirtyRef.current = false;
+      localStorage.removeItem(draftKey);
       alert('¡Compra finalizada exitosamente!');
       navigate(`/ordenes/${id}`);
     } catch (err) {
@@ -523,7 +584,14 @@ export default function ModoCompra() {
         {/* Barra de progreso + botón de vista */}
         <div className="max-w-2xl mx-auto mt-2">
           <div className="flex items-center justify-between text-xs text-green-200 mb-1">
-            <span>{productosListos} de {orden.detalles.length} productos marcados</span>
+            <span className="flex items-center gap-1.5">
+              {productosListos} de {orden.detalles.length} productos marcados
+              {draftSavedAt && (
+                <span className="flex items-center gap-1 text-green-100" title="Tus datos se guardan en este dispositivo y no se pierden al recargar">
+                  <Save size={11} /> Borrador {draftSavedAt}
+                </span>
+              )}
+            </span>
             <button
               onClick={() => setVistaGlobal(v => !v)}
               className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-semibold px-3 py-1 rounded-full transition-colors"
@@ -569,6 +637,22 @@ export default function ModoCompra() {
       </div>
 
       <div className="max-w-2xl mx-auto p-4 space-y-3">
+
+        {borradorRestaurado && (
+          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3 text-sm">
+            <Save size={16} className="mt-0.5 shrink-0" />
+            <div className="flex-grow">
+              Recuperamos los datos que habías ingresado antes de recargar. Revísalos y continúa.
+            </div>
+            <button
+              onClick={() => setBorradorRestaurado(false)}
+              className="text-amber-600 hover:text-amber-800 font-bold px-1"
+              aria-label="Cerrar aviso"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {vistaGlobal ? (
           /* ── Vista Global ── */
