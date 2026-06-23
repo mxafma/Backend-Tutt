@@ -6,9 +6,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Dispara la ingesta semanal del histórico de precios. ODEPA actualiza ~1 vez por
- * semana, así que se corre los lunes a las 06:00 (zona de Santiago). Como la ingesta
- * es idempotente, correr de más no duplica.
+ * Dispara la ingesta del histórico de precios dos veces al día. Verificado contra los
+ * datos reales: ODEPA publica Lo Valledor todos los días hábiles (lun-vie, nada los
+ * fines de semana) y con un rezago de uno o varios días, a hora impredecible. Por eso
+ * se corre a las 07:00 y 14:00 (zona de Santiago): así se captura el dato el mismo día
+ * que sale aunque la hora varíe. Las corridas sin dato nuevo insertan 0 (la ingesta es
+ * idempotente), por lo que correr de más no duplica ni molesta.
  */
 @Component
 public class MercadoScheduler {
@@ -21,15 +24,15 @@ public class MercadoScheduler {
         this.ingesta = ingesta;
     }
 
-    @Scheduled(cron = "0 0 6 * * MON", zone = "America/Santiago")
-    public void ingestaSemanal() {
+    @Scheduled(cron = "0 0 7,14 * * *", zone = "America/Santiago")
+    public void ingestaProgramada() {
         try {
             OdepaIngestaService.Resultado r = ingesta.ingestarAnioActual();
-            log.info("Ingesta semanal OK: {}", r.toMap());
+            log.info("Ingesta programada OK: {}", r.toMap());
         } catch (Exception e) {
-            // No relanzar: un fallo de ODEPA no debe tumbar el scheduler; reintenta la
-            // próxima semana (o se dispara manualmente).
-            log.error("Ingesta semanal falló: {}", e.getMessage(), e);
+            // No relanzar: un fallo de ODEPA no debe tumbar el scheduler; reintenta en
+            // la próxima corrida (o se dispara manualmente).
+            log.error("Ingesta programada falló: {}", e.getMessage(), e);
         }
     }
 }
