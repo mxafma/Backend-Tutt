@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Producto, DetalleOrden, OrdenCompra, Proveedor, TipoCompra, Usuario } from '../types';
@@ -22,7 +22,12 @@ export default function CrearOrden() {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
 
-  const [orden, setOrden] = useState<Partial<OrdenCompra>>({
+  // Borrador local (Opción 1) + aviso al salir (Opción 4)
+  const DRAFT_KEY = 'oc_nueva_draft';
+  const dirtyRef = useRef(false); // true cuando hay cambios sin guardar
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+
+  const ordenInicial = (): Partial<OrdenCompra> => ({
     fechaCompraPlanificada: new Date().toISOString().split('T')[0],
     tipoCompra: 'MERCADO',
     estado: 'BORRADOR',
@@ -31,6 +36,26 @@ export default function CrearOrden() {
     encargadoCompra: '',
     observaciones: '',
   });
+
+  // Restaurar borrador guardado (solo si tenía al menos un producto)
+  const leerBorrador = (): Partial<OrdenCompra> | null => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw) as Partial<OrdenCompra>;
+        if (Array.isArray(draft.detalles) && draft.detalles.length > 0) return draft;
+      }
+    } catch (err) {
+      console.error('No se pudo restaurar el borrador de la orden:', err);
+    }
+    return null;
+  };
+
+  const [orden, setOrden] = useState<Partial<OrdenCompra>>(() => {
+    const draft = leerBorrador();
+    return draft ? { ...ordenInicial(), ...draft } : ordenInicial();
+  });
+  const [borradorRestaurado, setBorradorRestaurado] = useState<boolean>(() => leerBorrador() !== null);
 
   const [detalleActual, setDetalleActual] = useState<{
     producto: Producto | undefined;
@@ -62,10 +87,47 @@ export default function CrearOrden() {
     fetchData();
   }, []);
 
+  // Si se restauró un borrador, hay cambios sin guardar -> avisar al salir.
+  useEffect(() => {
+    if (borradorRestaurado) dirtyRef.current = true;
+  }, []);
+
+  // Opción 1: autoguardar el borrador en localStorage cuando cambia la orden
+  // (solo si ya tiene productos, para no guardar formularios vacíos).
+  useEffect(() => {
+    if (!dirtyRef.current) return;
+    try {
+      if (orden.detalles && orden.detalles.length > 0) {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(orden));
+        setDraftSavedAt(
+          new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+        );
+      } else {
+        localStorage.removeItem(DRAFT_KEY);
+        setDraftSavedAt(null);
+      }
+    } catch (err) {
+      console.error('No se pudo guardar el borrador de la orden:', err);
+    }
+  }, [orden]);
+
+  // Opción 4: avisar antes de recargar/cerrar si hay cambios sin guardar.
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirtyRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
+
   const handleOrdenChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    dirtyRef.current = true;
     if (name === 'compradorAsignadoId') {
       const usuario = usuarios.find(u => u.id === Number(value));
       setOrden(prev => ({
@@ -116,6 +178,7 @@ export default function CrearOrden() {
       comentario: detalleActual.comentario.trim() || undefined,
     };
 
+    dirtyRef.current = true;
     setOrden(prev => ({
       ...prev,
       detalles: [...(prev.detalles || []), nuevoDetalle],
@@ -131,6 +194,7 @@ export default function CrearOrden() {
   };
 
   const eliminarDetalle = (index: number) => {
+    dirtyRef.current = true;
     setOrden(prev => ({
       ...prev,
       detalles: (prev.detalles || []).filter((_, i) => i !== index),
@@ -138,6 +202,7 @@ export default function CrearOrden() {
   };
 
   const moverDetalle = (index: number, direccion: -1 | 1) => {
+    dirtyRef.current = true;
     setOrden(prev => {
       const detalles = [...(prev.detalles || [])];
       const destino = index + direccion;
@@ -164,6 +229,9 @@ export default function CrearOrden() {
 
     try {
       await api.post('/ordenes', ordenParaEnviar);
+      // Orden guardada en el backend: el borrador local ya no es necesario.
+      dirtyRef.current = false;
+      localStorage.removeItem(DRAFT_KEY);
       alert(
         estado === 'BORRADOR'
           ? 'Orden guardada como borrador.'
@@ -178,7 +246,34 @@ export default function CrearOrden() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Crear Nueva Orden de Compra</h1>
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Crear Nueva Orden de Compra</h1>
+        {draftSavedAt && (
+          <span
+            className="flex items-center gap-1.5 text-sm text-gray-500"
+            title="Tus cambios se guardan en este dispositivo y no se pierden al recargar"
+          >
+            <Save size={14} /> Borrador guardado {draftSavedAt}
+          </span>
+        )}
+      </div>
+
+      {borradorRestaurado && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3 text-sm mb-6">
+          <Save size={16} className="mt-0.5 shrink-0" />
+          <div className="flex-grow">
+            Recuperamos la orden que estabas creando antes de recargar. Revísala y continúa.
+          </div>
+          <button
+            type="button"
+            onClick={() => setBorradorRestaurado(false)}
+            className="text-amber-600 hover:text-amber-800 font-bold px-1"
+            aria-label="Cerrar aviso"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className="space-y-8">
         {/* Información General */}
