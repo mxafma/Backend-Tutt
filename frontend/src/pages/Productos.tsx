@@ -1,8 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Producto } from '../types';
-import { PackageOpen, PlusCircle, X, Check, Pencil, Trash2, History, Settings2 } from 'lucide-react';
+import {
+  PackageOpen, PlusCircle, X, Check, Pencil, Trash2, History, Settings2,
+  Search, ChevronLeft, ChevronRight,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getFormatos, saveFormatos, DEFAULT_FORMATOS } from '../utils/formatos';
 
@@ -31,9 +34,60 @@ export default function Productos() {
   const [form, setForm] = useState(formVacio());
   const [guardando, setGuardando] = useState(false);
 
+  // Buscador + orden + paginación (todo en el cliente)
+  const PRODUCTOS_POR_PAGINA = 20;
+  const [busqueda, setBusqueda] = useState('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [pagina, setPagina] = useState(1);
+
   useEffect(() => {
     fetchProductos();
   }, []);
+
+  // Filtra por nombre/descripción y ordena alfabéticamente
+  const productosFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    const filtrados = q
+      ? productos.filter(
+          p =>
+            p.nombre.toLowerCase().includes(q) ||
+            (p.descripcion ?? '').toLowerCase().includes(q)
+        )
+      : productos;
+    return [...filtrados].sort((a, b) => {
+      const cmp = a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [productos, busqueda, sortDir]);
+
+  const totalPaginas = Math.max(1, Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const productosPagina = useMemo(() => {
+    const inicio = (paginaActual - 1) * PRODUCTOS_POR_PAGINA;
+    return productosFiltrados.slice(inicio, inicio + PRODUCTOS_POR_PAGINA);
+  }, [productosFiltrados, paginaActual]);
+
+  // Volver a la primera página al cambiar el filtro u orden
+  useEffect(() => {
+    setPagina(1);
+  }, [busqueda, sortDir]);
+
+  // Números de página visibles (con elipsis cuando son muchas)
+  const paginasVisibles = useMemo(() => {
+    const paginas: (number | '…')[] = [];
+    if (totalPaginas <= 7) {
+      for (let i = 1; i <= totalPaginas; i++) paginas.push(i);
+    } else {
+      paginas.push(1);
+      if (paginaActual > 3) paginas.push('…');
+      const start = Math.max(2, paginaActual - 1);
+      const end = Math.min(totalPaginas - 1, paginaActual + 1);
+      for (let i = start; i <= end; i++) paginas.push(i);
+      if (paginaActual < totalPaginas - 2) paginas.push('…');
+      paginas.push(totalPaginas);
+    }
+    return paginas;
+  }, [totalPaginas, paginaActual]);
 
   const fetchProductos = async () => {
     try {
@@ -280,6 +334,36 @@ export default function Productos() {
         )}
       </div>
 
+      {/* Buscador + orden */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <div className="relative flex-grow">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre o descripción..."
+            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+          />
+          {busqueda && (
+            <button
+              onClick={() => setBusqueda('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Limpiar búsqueda"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+        <button
+          onClick={() => setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))}
+          className="flex items-center justify-center gap-1.5 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition shrink-0"
+          title="Cambiar orden alfabético"
+        >
+          Nombre {sortDir === 'asc' ? 'A→Z' : 'Z→A'}
+        </button>
+      </div>
+
       {/* Tabla */}
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         {loading ? (
@@ -298,12 +382,16 @@ export default function Productos() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {productos.length === 0 ? (
+              {productosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-400">No hay productos registrados.</td>
+                  <td colSpan={5} className="p-8 text-center text-gray-400">
+                    {busqueda
+                      ? `No se encontraron productos para "${busqueda}".`
+                      : 'No hay productos registrados.'}
+                  </td>
                 </tr>
               ) : (
-                productos.map(p => (
+                productosPagina.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50 transition">
                     <td className="px-4 py-3 font-medium text-gray-800">{p.nombre}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{p.descripcion || '—'}</td>
@@ -354,6 +442,54 @@ export default function Productos() {
           </table>
         )}
       </div>
+
+      {/* Paginación */}
+      {!loading && !error && productosFiltrados.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+          <p className="text-sm text-gray-500">
+            Mostrando {(paginaActual - 1) * PRODUCTOS_POR_PAGINA + 1}–
+            {Math.min(paginaActual * PRODUCTOS_POR_PAGINA, productosFiltrados.length)} de{' '}
+            {productosFiltrados.length} producto{productosFiltrados.length !== 1 ? 's' : ''}
+          </p>
+          {totalPaginas > 1 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPagina(paginaActual - 1)}
+                disabled={paginaActual === 1}
+                className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Página anterior"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              {paginasVisibles.map((pag, i) =>
+                pag === '…' ? (
+                  <span key={`e${i}`} className="px-2 text-gray-400">…</span>
+                ) : (
+                  <button
+                    key={pag}
+                    onClick={() => setPagina(pag)}
+                    className={`min-w-[36px] px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                      pag === paginaActual
+                        ? 'bg-green-700 text-white'
+                        : 'border border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pag}
+                  </button>
+                )
+              )}
+              <button
+                onClick={() => setPagina(paginaActual + 1)}
+                disabled={paginaActual === totalPaginas}
+                className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Página siguiente"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
