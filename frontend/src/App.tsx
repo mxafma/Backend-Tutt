@@ -211,6 +211,21 @@ function AppContent() {
 }
 
 export default function App() {
+  // Evita que la rueda del mouse modifique los inputs numéricos enfocados
+  // (cantidades, costos, precios en compra/recepción). Al hacer scroll sobre
+  // un campo numérico con foco, se le quita el foco para que cambie la página
+  // en lugar del valor.
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      const el = document.activeElement as HTMLInputElement | null;
+      if (el && el.tagName === 'INPUT' && el.type === 'number' && el === e.target) {
+        el.blur();
+      }
+    };
+    document.addEventListener('wheel', handleWheel, { passive: true });
+    return () => document.removeEventListener('wheel', handleWheel);
+  }, []);
+
   return (
     <AuthProvider>
       <AppContent />
