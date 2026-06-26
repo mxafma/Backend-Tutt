@@ -41,7 +41,10 @@ public class ReporteService {
             JOIN ordenes_compra o ON o.id = d.orden_id
             JOIN productos p       ON p.id = d.producto_id
             WHERE o.estado IN ('COMPRADA', 'RECIBIDA', 'CERRADA')
-              AND COALESCE(o.fecha_compra_real::date, o.fecha_compra_planificada) BETWEEN ? AND ?
+              AND COALESCE(
+                    NULLIF(o.fecha_compra_real::text, '')::date,
+                    NULLIF(o.fecha_compra_planificada::text, '')::date
+                  ) BETWEEN ? AND ?
             GROUP BY p.nombre
             """;
 
@@ -51,7 +54,7 @@ public class ReporteService {
                    COALESCE(SUM(linea_ganancia), 0) AS ganancia,
                    COALESCE(SUM(cantidad), 0)       AS cant_vendida
             FROM eleventa.ventatickets_articulos
-            WHERE vendido_en::date BETWEEN ? AND ?
+            WHERE NULLIF(vendido_en::text, '')::date BETWEEN ? AND ?
             GROUP BY producto_nombre
             """;
 
