@@ -2,6 +2,7 @@ package com.verduleria.backend.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -38,6 +39,15 @@ public class GlobalExceptionHandler {
         log.warn("Acceso denegado: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Map.of("error", "Acceso denegado: no tienes permiso para realizar esta acción"));
+    }
+
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<Map<String, Object>> handleDataAccess(DataAccessException e) {
+        // Surface the underlying DB cause (p. ej. "column ... does not exist"),
+        // que de otro modo queda enterrado bajo el mensaje genérico de Spring.
+        String causa = e.getMostSpecificCause().getMessage();
+        log.error("Error de base de datos: {}", causa);
+        return ResponseEntity.badRequest().body(Map.of("error", "DB: " + causa));
     }
 
     @ExceptionHandler(RuntimeException.class)
