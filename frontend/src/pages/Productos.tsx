@@ -4,10 +4,11 @@ import api from '../services/api';
 import { Producto } from '../types';
 import {
   PackageOpen, PlusCircle, X, Check, Pencil, Trash2, History, Settings2,
-  Search, ChevronLeft, ChevronRight,
+  Search, ChevronLeft, ChevronRight, Merge,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getFormatos, saveFormatos, DEFAULT_FORMATOS } from '../utils/formatos';
+import { normalizar } from '../utils/texto';
 
 // lista cargada/gestionada desde utils/formatos
 
@@ -46,12 +47,12 @@ export default function Productos() {
 
   // Filtra por nombre/descripción y ordena alfabéticamente
   const productosFiltrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
+    const q = normalizar(busqueda);
     const filtrados = q
       ? productos.filter(
           p =>
-            p.nombre.toLowerCase().includes(q) ||
-            (p.descripcion ?? '').toLowerCase().includes(q)
+            normalizar(p.nombre).includes(q) ||
+            normalizar(p.descripcion ?? '').includes(q)
         )
       : productos;
     return [...filtrados].sort((a, b) => {
@@ -191,14 +192,24 @@ export default function Productos() {
           <PackageOpen size={26} className="text-green-700" />
           <h1 className="text-3xl font-bold text-gray-800">Gestión de Productos</h1>
         </div>
-        {!mostrarForm && (
-          <button
-            onClick={() => { setMostrarForm(true); setEditandoId(null); setForm(formVacio()); }}
-            className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2.5 rounded-lg shadow transition"
-          >
-            <PlusCircle size={18} /> Nuevo Producto
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {user?.rol === 'ADMIN' && (
+            <button
+              onClick={() => navigate('/productos/duplicados')}
+              className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold px-4 py-2.5 rounded-lg shadow-sm transition"
+            >
+              <Merge size={18} /> Fusionar duplicados
+            </button>
+          )}
+          {!mostrarForm && (
+            <button
+              onClick={() => { setMostrarForm(true); setEditandoId(null); setForm(formVacio()); }}
+              className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2.5 rounded-lg shadow transition"
+            >
+              <PlusCircle size={18} /> Nuevo Producto
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Formulario */}

@@ -65,6 +65,26 @@ public class ProductoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/duplicados")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<List<Map<String, Object>>> duplicados() {
+        return productoService.encontrarDuplicados();
+    }
+
+    @PostMapping("/fusionar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Producto> fusionar(@RequestBody FusionRequest req) {
+        if (req.principalId == null || req.duplicadoIds == null || req.duplicadoIds.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(productoService.fusionar(req.principalId, req.duplicadoIds));
+    }
+
+    public static class FusionRequest {
+        public Long principalId;
+        public List<Long> duplicadoIds;
+    }
+
     @GetMapping("/{id}/historial")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Map<String, Object>>> historial(@PathVariable Long id) {

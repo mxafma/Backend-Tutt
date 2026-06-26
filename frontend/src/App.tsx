@@ -18,6 +18,7 @@ import ModoCompra from './pages/ModoCompra';
 import CompraDirecta from './pages/CompraDirecta';
 import Recepcion from './pages/Recepcion';
 import Admin from './pages/Admin';
+import FusionProductos from './pages/FusionProductos';
 import Proveedores from './pages/Proveedores';
 import HistorialProducto from './pages/HistorialProducto';
 
@@ -183,6 +184,14 @@ function AppShell() {
             element={
               <ProtectedRoute roles={['ADMIN']}>
                 <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/productos/duplicados"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <FusionProductos />
               </ProtectedRoute>
             }
           />

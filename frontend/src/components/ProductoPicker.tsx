@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Producto } from '../types';
 import api from '../services/api';
+import { normalizar } from '../utils/texto';
 import { PlusCircle, X } from 'lucide-react';
 
 interface Props {
@@ -46,10 +47,10 @@ export default function ProductoPicker({ productos, seleccionado, onSelect, onCl
   }, [indiceFocused]);
 
   const filtrados = busqueda.length > 0
-    ? activos.filter(p => p.nombre.toLowerCase().includes(busqueda.toLowerCase())).slice(0, 10)
+    ? activos.filter(p => normalizar(p.nombre).includes(normalizar(busqueda))).slice(0, 10)
     : activos.slice(0, 10);
 
-  const coincideExacto = activos.some(p => p.nombre.toLowerCase() === busqueda.toLowerCase());
+  const coincideExacto = activos.some(p => normalizar(p.nombre) === normalizar(busqueda));
 
   const seleccionar = (p: Producto) => {
     onSelect(p);
