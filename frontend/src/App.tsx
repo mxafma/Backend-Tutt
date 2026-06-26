@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import {
   ShoppingCart, PackageOpen, LayoutDashboard,
   PlusCircle, ClipboardList, ShieldCheck, LogOut, User, Truck,
-  Sun, Moon, ExternalLink, Receipt,
+  Sun, Moon, ExternalLink, Receipt, BarChart3,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -19,6 +19,7 @@ import CompraDirecta from './pages/CompraDirecta';
 import Recepcion from './pages/Recepcion';
 import Admin from './pages/Admin';
 import FusionProductos from './pages/FusionProductos';
+import Reportes from './pages/Reportes';
 import Proveedores from './pages/Proveedores';
 import HistorialProducto from './pages/HistorialProducto';
 
@@ -88,6 +89,13 @@ function Navbar() {
             <li>
               <Link to="/proveedores" className="gap-1.5 rounded-lg">
                 <Truck size={15} /> Proveedores
+              </Link>
+            </li>
+          )}
+          {user?.rol === 'ADMIN' && (
+            <li>
+              <Link to="/reportes" className="gap-1.5 rounded-lg">
+                <BarChart3 size={15} /> Reportes
               </Link>
             </li>
           )}
@@ -179,6 +187,14 @@ function AppShell() {
           <Route path="/recepcion/:id" element={<Recepcion />} />
           <Route path="/proveedores" element={<Proveedores />} />
           <Route path="/productos/:id/historial" element={<HistorialProducto />} />
+          <Route
+            path="/reportes"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <Reportes />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin"
             element={
