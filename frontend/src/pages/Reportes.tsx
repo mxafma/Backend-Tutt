@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
-import { BarChart3, Search, AlertTriangle, TrendingUp } from 'lucide-react';
+import { normalizar } from '../utils/texto';
+import { BarChart3, Search, AlertTriangle, TrendingUp, X } from 'lucide-react';
 
 interface ItemRentabilidad {
   producto: string;
@@ -22,6 +23,7 @@ interface Respuesta {
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
 const pct = (n: number | null) => (n == null ? '—' : `${n.toFixed(1)}%`);
+const qty = (n: number) => (n ? n.toLocaleString('es-CL', { maximumFractionDigits: 1 }) : '—');
 
 // Primer y último día del mes actual como rango por defecto.
 function rangoMesActual(): { desde: string; hasta: string } {
@@ -44,6 +46,7 @@ export default function Reportes() {
   const [data, setData] = useState<Respuesta | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [busqueda, setBusqueda] = useState('');
 
   const cargar = async () => {
     setLoading(true);
@@ -61,6 +64,9 @@ export default function Reportes() {
   useEffect(() => { cargar(); /* carga inicial con el mes actual */ }, []);
 
   const t = data?.totales;
+  const itemsFiltrados = data
+    ? data.items.filter(i => normalizar(i.producto).includes(normalizar(busqueda)))
+    : [];
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -121,12 +127,37 @@ export default function Reportes() {
         </div>
       )}
 
+      {/* Buscador por producto (mismo patrón que la pantalla Productos) */}
+      {data && data.items.length > 0 && (
+        <div className="relative mb-3">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            placeholder="Buscar producto en el reporte..."
+            className="w-full pl-9 pr-9 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+          />
+          {busqueda && (
+            <button
+              onClick={() => setBusqueda('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Limpiar búsqueda"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Tabla por producto */}
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="p-10 text-center text-gray-400">Cargando...</div>
         ) : !data || data.items.length === 0 ? (
           <div className="p-10 text-center text-gray-400">Sin datos en el período seleccionado.</div>
+        ) : itemsFiltrados.length === 0 ? (
+          <div className="p-10 text-center text-gray-400">No se encontraron productos para "{busqueda}".</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -134,18 +165,22 @@ export default function Reportes() {
                 <tr>
                   <th className="px-4 py-3 font-semibold text-gray-600">Producto</th>
                   <th className="px-4 py-3 font-semibold text-gray-600 text-right">Comprado</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600 text-right">Cant. comprada</th>
                   <th className="px-4 py-3 font-semibold text-gray-600 text-right">Vendido</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600 text-right">Cant. vendida</th>
                   <th className="px-4 py-3 font-semibold text-gray-600 text-right">Ganancia</th>
                   <th className="px-4 py-3 font-semibold text-gray-600 text-right">Margen real</th>
                   <th className="px-4 py-3 font-semibold text-gray-600 text-center">Cobertura</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {data.items.map((it, i) => (
+                {itemsFiltrados.map((it, i) => (
                   <tr key={i} className="hover:bg-gray-50 transition">
                     <td className="px-4 py-2.5 font-medium text-gray-800">{it.producto}</td>
                     <td className="px-4 py-2.5 text-right text-gray-700">{it.comprado > 0 ? clp(it.comprado) : '—'}</td>
+                    <td className="px-4 py-2.5 text-right text-gray-700">{qty(it.cantComprada)}</td>
                     <td className="px-4 py-2.5 text-right text-gray-700">{it.vendido > 0 ? clp(it.vendido) : '—'}</td>
+                    <td className="px-4 py-2.5 text-right text-gray-700">{qty(it.cantVendida)}</td>
                     <td className="px-4 py-2.5 text-right text-gray-700">{it.ganancia !== 0 ? clp(it.ganancia) : '—'}</td>
                     <td className={`px-4 py-2.5 text-right font-semibold ${
                       it.margenReal == null ? 'text-gray-400'
