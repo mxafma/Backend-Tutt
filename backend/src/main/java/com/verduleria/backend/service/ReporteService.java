@@ -1,10 +1,13 @@
 package com.verduleria.backend.service;
 
+import com.verduleria.backend.model.ProductoAlias;
+import com.verduleria.backend.repository.ProductoAliasRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +31,11 @@ import java.util.Map;
 public class ReporteService {
 
     private final JdbcTemplate jdbc;
+    private final ProductoAliasRepository aliasRepo;
 
-    public ReporteService(JdbcTemplate jdbc) {
+    public ReporteService(JdbcTemplate jdbc, ProductoAliasRepository aliasRepo) {
         this.jdbc = jdbc;
+        this.aliasRepo = aliasRepo;
     }
 
     private static final String SQL_COMPRAS = """
@@ -65,6 +70,17 @@ public class ReporteService {
     public Map<String, Object> rentabilidad(LocalDate desde, LocalDate hasta) {
         Map<String, Fila> porProducto = new LinkedHashMap<>();
 
+        // Alias nombre-de-venta → producto de compra: permite atribuir ventas con
+        // otro nombre ("Papas Blancas") o formatos derivados ("Malla papa 5kg") al
+        // insumo correcto. nombreVentaNorm → clave/nombre del producto destino.
+        Map<String, String> aliasClave = new HashMap<>();   // ventaNorm → normalizar(producto.nombre)
+        Map<String, String> aliasNombre = new HashMap<>();   // ventaNorm → producto.nombre (display)
+        for (ProductoAlias a : aliasRepo.findAll()) {
+            if (a.getProducto() == null) continue;
+            aliasClave.put(a.getNombreVentaNorm(), ProductoService.normalizar(a.getProducto().getNombre()));
+            aliasNombre.put(a.getNombreVentaNorm(), a.getProducto().getNombre());
+        }
+
         // 1) Compras (public)
         for (Map<String, Object> r : jdbc.queryForList(SQL_COMPRAS, desde, hasta)) {
             String nombre = (String) r.get("nombre");
@@ -73,11 +89,15 @@ public class ReporteService {
             f.cantComprada += num(r.get("cant_comprada"));
         }
 
-        // 2) Ventas (eleventa) — se mergean por nombre normalizado
+        // 2) Ventas (eleventa) — se mergean por nombre normalizado, salvo que exista
+        // un alias, en cuyo caso se agrupan sobre el producto de compra destino.
         for (Map<String, Object> r : jdbc.queryForList(SQL_VENTAS, desde, hasta)) {
             String nombre = (String) r.get("nombre");
             if (nombre == null || nombre.isBlank()) continue;
-            Fila f = porProducto.computeIfAbsent(ProductoService.normalizar(nombre), k -> new Fila(nombre));
+            String ventaNorm = ProductoService.normalizar(nombre);
+            String clave = aliasClave.getOrDefault(ventaNorm, ventaNorm);
+            String display = aliasNombre.getOrDefault(ventaNorm, nombre);
+            Fila f = porProducto.computeIfAbsent(clave, k -> new Fila(display));
             f.vendido += num(r.get("vendido"));
             f.ganancia += num(r.get("ganancia"));
             f.cantVendida += num(r.get("cant_vendida"));

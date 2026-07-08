@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { normalizar } from '../utils/texto';
-import { BarChart3, Search, AlertTriangle, TrendingUp, X } from 'lucide-react';
+import { Producto } from '../types';
+import { BarChart3, Search, AlertTriangle, TrendingUp, X, Link2 } from 'lucide-react';
 
 interface ItemRentabilidad {
   producto: string;
@@ -47,6 +48,8 @@ export default function Reportes() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [busqueda, setBusqueda] = useState('');
+  // Vinculación de una venta sin compra a un producto de compra (alias).
+  const [vinculando, setVinculando] = useState<string | null>(null);
 
   const cargar = async () => {
     setLoading(true);
@@ -62,6 +65,13 @@ export default function Reportes() {
   };
 
   useEffect(() => { cargar(); /* carga inicial con el mes actual */ }, []);
+
+  // Crea el alias nombre-de-venta → producto y recarga el reporte.
+  const vincular = async (nombreVenta: string, productoId: number) => {
+    await api.post('/reportes/alias', { nombreVenta, productoId });
+    setVinculando(null);
+    await cargar();
+  };
 
   const t = data?.totales;
   const itemsFiltrados = data
@@ -189,9 +199,20 @@ export default function Reportes() {
                       {pct(it.margenReal)}
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${COBERTURA_BADGE[it.cobertura].cls}`}>
-                        {COBERTURA_BADGE[it.cobertura].txt}
-                      </span>
+                      <div className="flex items-center justify-center gap-2">
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${COBERTURA_BADGE[it.cobertura].cls}`}>
+                          {COBERTURA_BADGE[it.cobertura].txt}
+                        </span>
+                        {it.cobertura === 'solo_venta' && (
+                          <button
+                            onClick={() => setVinculando(it.producto)}
+                            title="Vincular esta venta a un producto de compra"
+                            className="flex items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-900"
+                          >
+                            <Link2 size={13} /> Vincular
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -203,8 +224,111 @@ export default function Reportes() {
 
       <p className="text-xs text-gray-400 mt-4">
         Margen real = (Vendido − Comprado) / Vendido. "Comprado, no vendido" suele indicar mercadería
-        que aún no rota o que se vende con otro nombre en Eleventa.
+        que aún no rota o que se vende con otro nombre en Eleventa. Usa "Vincular" en las filas
+        "Vendido, sin compra" para asociarlas al producto de compra correcto; el vínculo queda guardado.
       </p>
+
+      {vinculando && (
+        <VincularModal
+          nombreVenta={vinculando}
+          onCancelar={() => setVinculando(null)}
+          onVincular={productoId => vincular(vinculando, productoId)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Modal para elegir a qué producto de compra se atribuye una venta sin contraparte. */
+function VincularModal({
+  nombreVenta,
+  onVincular,
+  onCancelar,
+}: {
+  nombreVenta: string;
+  onVincular: (productoId: number) => Promise<void>;
+  onCancelar: () => void;
+}) {
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [q, setQ] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.get<Producto[]>('/productos')
+      .then(res => setProductos(res.data.filter(p => p.activo !== false)))
+      .catch(() => setError('No se pudieron cargar los productos.'));
+  }, []);
+
+  const filtrados = productos
+    .filter(p => normalizar(p.nombre).includes(normalizar(q)))
+    .slice(0, 50);
+
+  const elegir = async (id?: number) => {
+    if (id == null || guardando) return;
+    setGuardando(true);
+    setError('');
+    try {
+      await onVincular(id);
+    } catch {
+      setError('No se pudo guardar el vínculo.');
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onCancelar}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-4 border-b border-gray-200">
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">Vincular venta a producto</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Venta: <span className="font-semibold text-gray-700">{nombreVenta}</span>
+            </p>
+          </div>
+          <button onClick={onCancelar} className="text-gray-400 hover:text-gray-600" aria-label="Cerrar">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-4 border-b border-gray-100">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              autoFocus
+              type="text"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="Buscar producto de compra..."
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+            />
+          </div>
+        </div>
+
+        {error && (
+          <div className="mx-4 mt-3 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">
+            <AlertTriangle size={15} /> {error}
+          </div>
+        )}
+
+        <div className="overflow-y-auto flex-1 p-2">
+          {filtrados.length === 0 ? (
+            <p className="p-6 text-center text-gray-400 text-sm">Sin productos que coincidan.</p>
+          ) : (
+            filtrados.map(p => (
+              <button
+                key={p.id}
+                onClick={() => elegir(p.id)}
+                disabled={guardando}
+                className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-green-50 transition flex items-center justify-between disabled:opacity-60"
+              >
+                <span className="font-medium text-gray-800">{p.nombre}</span>
+                {p.formatoHabitual && <span className="text-xs text-gray-400">{p.formatoHabitual}</span>}
+              </button>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
