@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { normalizar } from '../utils/texto';
 import { Producto } from '../types';
-import { BarChart3, Search, AlertTriangle, TrendingUp, X, Link2 } from 'lucide-react';
+import { BarChart3, Search, AlertTriangle, TrendingUp, X, Link2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface ItemRentabilidad {
   producto: string;
@@ -20,6 +20,12 @@ interface Respuesta {
   hasta: string;
   items: ItemRentabilidad[];
   totales: { comprado: number; vendido: number; ganancia: number; margenReal: number | null };
+}
+
+interface Alias {
+  id: number;
+  nombreVentaOriginal: string;
+  producto: Producto;
 }
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
@@ -50,6 +56,8 @@ export default function Reportes() {
   const [busqueda, setBusqueda] = useState('');
   // Vinculación de una venta sin compra a un producto de compra (alias).
   const [vinculando, setVinculando] = useState<string | null>(null);
+  const [aliases, setAliases] = useState<Alias[]>([]);
+  const [verVinculos, setVerVinculos] = useState(false);
 
   const cargar = async () => {
     setLoading(true);
@@ -64,13 +72,28 @@ export default function Reportes() {
     }
   };
 
-  useEffect(() => { cargar(); /* carga inicial con el mes actual */ }, []);
+  const cargarAliases = async () => {
+    try {
+      const res = await api.get<Alias[]>('/reportes/alias');
+      setAliases(res.data);
+    } catch {
+      /* silencioso: el panel de vínculos es secundario */
+    }
+  };
 
-  // Crea el alias nombre-de-venta → producto y recarga el reporte.
+  useEffect(() => { cargar(); cargarAliases(); /* carga inicial con el mes actual */ }, []);
+
+  // Crea el alias nombre-de-venta → producto y recarga reporte + lista de vínculos.
   const vincular = async (nombreVenta: string, productoId: number) => {
     await api.post('/reportes/alias', { nombreVenta, productoId });
     setVinculando(null);
-    await cargar();
+    await Promise.all([cargar(), cargarAliases()]);
+  };
+
+  // Elimina un vínculo: la venta vuelve a cruzarse por nombre (o queda "sin compra").
+  const desvincular = async (id: number) => {
+    await api.delete(`/reportes/alias/${id}`);
+    await Promise.all([cargar(), cargarAliases()]);
   };
 
   const t = data?.totales;
@@ -134,6 +157,40 @@ export default function Reportes() {
             <p className="text-xs text-gray-500 mb-1 flex items-center gap-1"><TrendingUp size={12} /> Margen real</p>
             <p className="text-xl font-bold text-green-700">{pct(t.margenReal)}</p>
           </div>
+        </div>
+      )}
+
+      {/* Vínculos guardados: permite revisar y deshacer alias mal hechos */}
+      {aliases.length > 0 && (
+        <div className="mb-4 bg-white rounded-xl shadow-sm border border-gray-200">
+          <button
+            onClick={() => setVerVinculos(v => !v)}
+            className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            {verVinculos ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            <Link2 size={15} className="text-blue-600" />
+            Vínculos guardados ({aliases.length})
+          </button>
+          {verVinculos && (
+            <ul className="border-t border-gray-100 divide-y divide-gray-100">
+              {aliases.map(a => (
+                <li key={a.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                  <span className="text-gray-700">
+                    <span className="font-medium">{a.nombreVentaOriginal}</span>
+                    <span className="text-gray-400 mx-2">→</span>
+                    <span className="font-semibold text-green-700">{a.producto?.nombre}</span>
+                  </span>
+                  <button
+                    onClick={() => desvincular(a.id)}
+                    title="Quitar este vínculo"
+                    className="flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800 shrink-0"
+                  >
+                    <Trash2 size={14} /> Quitar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
