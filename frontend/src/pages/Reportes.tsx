@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { normalizar } from '../utils/texto';
 import { Producto } from '../types';
-import { BarChart3, Search, AlertTriangle, TrendingUp, X, Link2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { BarChart3, Search, AlertTriangle, TrendingUp, X, Link2, Trash2, ChevronDown, ChevronRight, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
 
 interface ItemRentabilidad {
   producto: string;
@@ -27,6 +27,9 @@ interface Alias {
   nombreVentaOriginal: string;
   producto: Producto;
 }
+
+// Columnas por las que se puede ordenar la tabla.
+type SortKey = 'producto' | 'comprado' | 'cantComprada' | 'vendido' | 'cantVendida' | 'ganancia' | 'margenReal';
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
 const pct = (n: number | null) => (n == null ? '—' : `${n.toFixed(1)}%`);
@@ -58,6 +61,9 @@ export default function Reportes() {
   const [vinculando, setVinculando] = useState<string | null>(null);
   const [aliases, setAliases] = useState<Alias[]>([]);
   const [verVinculos, setVerVinculos] = useState(false);
+  // Orden de la tabla. Por defecto lo más vendido primero (igual que el backend).
+  const [sortKey, setSortKey] = useState<SortKey>('vendido');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const cargar = async () => {
     setLoading(true);
@@ -96,10 +102,31 @@ export default function Reportes() {
     await Promise.all([cargar(), cargarAliases()]);
   };
 
+  // Click en una columna: alterna asc/desc si es la misma, o la activa con su
+  // dirección natural (texto A→Z, números de mayor a menor).
+  const ordenarPor = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'producto' ? 'asc' : 'desc');
+    }
+  };
+
   const t = data?.totales;
   const itemsFiltrados = data
     ? data.items.filter(i => normalizar(i.producto).includes(normalizar(busqueda)))
     : [];
+  const itemsOrdenados = [...itemsFiltrados].sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    if (sortKey === 'producto') return a.producto.localeCompare(b.producto, 'es') * dir;
+    // Los margenReal nulos van siempre al final, sin importar la dirección.
+    const av = a[sortKey], bv = b[sortKey];
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    return (av - bv) * dir;
+  });
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -230,18 +257,18 @@ export default function Reportes() {
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 font-semibold text-gray-600">Producto</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 text-right">Comprado</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 text-right">Cant. comprada</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 text-right">Vendido</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 text-right">Cant. vendida</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 text-right">Ganancia</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600 text-right">Margen real</th>
+                  <ThOrden campo="producto" label="Producto" sortKey={sortKey} sortDir={sortDir} onSort={ordenarPor} />
+                  <ThOrden campo="comprado" label="Comprado" alinear="right" sortKey={sortKey} sortDir={sortDir} onSort={ordenarPor} />
+                  <ThOrden campo="cantComprada" label="Cant. comprada" alinear="right" sortKey={sortKey} sortDir={sortDir} onSort={ordenarPor} />
+                  <ThOrden campo="vendido" label="Vendido" alinear="right" sortKey={sortKey} sortDir={sortDir} onSort={ordenarPor} />
+                  <ThOrden campo="cantVendida" label="Cant. vendida" alinear="right" sortKey={sortKey} sortDir={sortDir} onSort={ordenarPor} />
+                  <ThOrden campo="ganancia" label="Ganancia" alinear="right" sortKey={sortKey} sortDir={sortDir} onSort={ordenarPor} />
+                  <ThOrden campo="margenReal" label="Margen real" alinear="right" sortKey={sortKey} sortDir={sortDir} onSort={ordenarPor} />
                   <th className="px-4 py-3 font-semibold text-gray-600 text-center">Cobertura</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {itemsFiltrados.map((it, i) => (
+                {itemsOrdenados.map((it, i) => (
                   <tr key={i} className="hover:bg-gray-50 transition">
                     <td className="px-4 py-2.5 font-medium text-gray-800">{it.producto}</td>
                     <td className="px-4 py-2.5 text-right text-gray-700">{it.comprado > 0 ? clp(it.comprado) : '—'}</td>
@@ -293,6 +320,38 @@ export default function Reportes() {
         />
       )}
     </div>
+  );
+}
+
+/** Cabecera de columna clicable que ordena la tabla por su campo. */
+function ThOrden({
+  campo,
+  label,
+  alinear = 'left',
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  campo: SortKey;
+  label: string;
+  alinear?: 'left' | 'right';
+  sortKey: SortKey;
+  sortDir: 'asc' | 'desc';
+  onSort: (k: SortKey) => void;
+}) {
+  const activo = sortKey === campo;
+  return (
+    <th className={`px-4 py-3 font-semibold text-gray-600 ${alinear === 'right' ? 'text-right' : 'text-left'}`}>
+      <button
+        onClick={() => onSort(campo)}
+        className={`inline-flex items-center gap-1 hover:text-gray-900 ${alinear === 'right' ? 'flex-row-reverse' : ''} ${activo ? 'text-gray-900' : ''}`}
+      >
+        {label}
+        {activo
+          ? (sortDir === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />)
+          : <ChevronsUpDown size={13} className="text-gray-300" />}
+      </button>
+    </th>
   );
 }
 
