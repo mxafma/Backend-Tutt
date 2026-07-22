@@ -33,6 +33,18 @@ const TIPO_LABEL: Record<TipoCompra, string> = {
 // Verde de la marca (mismo tono que los botones "Nueva Orden").
 const VERDE: [number, number, number] = [22, 163, 74];
 
+// Colores del logo (mismos que la pantalla de login).
+const LOGO_NARANJA: [number, number, number] = [245, 146, 29];
+const LOGO_VERDE: [number, number, number] = [42, 122, 46];
+
+// Datos de la empresa para el encabezado y la facturación del proveedor.
+const EMPRESA = {
+  razonSocial: 'Comercial Nuevo Tuttifruty SPA',
+  rut: '77.730.282-5',
+  direccion: 'General San Martin Paradero 23 1/2, Colina',
+  giro: 'Compra y venta al por menor de frutas y verduras',
+};
+
 const clp = (n?: number | null): string =>
   n != null ? `$${Math.round(n).toLocaleString('es-CL')}` : '—';
 
@@ -206,6 +218,139 @@ export function descargarOrdenPdf(orden: OrdenCompra): string {
   }
 
   const nombre = `orden-compra-${orden.id ?? 'sin-id'}.pdf`;
+  doc.save(nombre);
+  return nombre;
+}
+
+/**
+ * Genera y descarga la versión de la orden pensada para ENVIAR AL PROVEEDOR.
+ * Solo lleva Producto / Formato / Cantidad, más el encabezado de la empresa
+ * y los datos de facturación. Sin columnas ni campos internos.
+ */
+export function descargarOrdenProveedorPdf(orden: OrdenCompra): string {
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const margin = 40;
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // ---- Logo (texto: "Tutti" naranja + "fruty" verde, igual que la app) ----
+  doc.setFont('times', 'bolditalic');
+  doc.setFontSize(30);
+  doc.setTextColor(...LOGO_NARANJA);
+  doc.text('Tutti', margin, 56);
+  const anchoTutti = doc.getTextWidth('Tutti');
+  doc.setTextColor(...LOGO_VERDE);
+  doc.text('fruty', margin + anchoTutti, 56);
+
+  // ---- Datos de la empresa / facturación (bajo el logo) ----
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(90, 90, 90);
+  const datos = [
+    EMPRESA.razonSocial,
+    `RUT: ${EMPRESA.rut}`,
+    EMPRESA.direccion,
+    `Giro: ${EMPRESA.giro}`,
+  ];
+  datos.forEach((linea, i) => doc.text(linea, margin, 74 + i * 12));
+
+  // ---- Bloque de la orden (derecha) ----
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(40, 40, 40);
+  doc.text('ORDEN DE COMPRA', pageWidth - margin, 44, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(90, 90, 90);
+  doc.text(`N.° ${orden.id ?? '—'}`, pageWidth - margin, 62, { align: 'right' });
+  doc.text(`Fecha: ${fecha(orden.fechaCreacion)}`, pageWidth - margin, 76, {
+    align: 'right',
+  });
+
+  // ---- Línea separadora ----
+  let y = 132;
+  doc.setDrawColor(...VERDE);
+  doc.setLineWidth(1.2);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 22;
+
+  // ---- Proveedor ----
+  const proveedor = orden.proveedorNombre || orden.lugarCompra || '—';
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(130, 130, 130);
+  doc.text('PROVEEDOR', margin, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(40, 40, 40);
+  doc.text(proveedor, margin, y + 16);
+  y += 40;
+
+  // ---- Tabla: solo Producto / Formato / Cantidad ----
+  const detalles = orden.detalles ?? [];
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [['Producto', 'Formato', 'Cantidad']],
+    body: detalles.map(d => [
+      d.nombreProductoSnapshot || d.producto?.nombre || '—',
+      d.formato || '—',
+      num(d.cantidadSolicitada),
+    ]),
+    styles: { fontSize: 9, cellPadding: 5, overflow: 'linebreak' },
+    headStyles: { fillColor: VERDE, textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245, 247, 245] },
+    columnStyles: {
+      0: { cellWidth: 'auto' },
+      1: { cellWidth: 120 },
+      2: { cellWidth: 80, halign: 'center' },
+    },
+  });
+
+  // ---- Total de ítems ----
+  // @ts-expect-error - lastAutoTable lo agrega el plugin en runtime
+  let afterY = doc.lastAutoTable.finalY + 18;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(40, 40, 40);
+  doc.text(
+    `Total de productos: ${detalles.length}`,
+    pageWidth - margin,
+    afterY,
+    { align: 'right' },
+  );
+
+  if (orden.observaciones) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    const lineas = doc.splitTextToSize(
+      `Observaciones: ${orden.observaciones}`,
+      pageWidth - margin * 2,
+    );
+    doc.text(lineas, margin, afterY + 6);
+  }
+
+  // ---- Pie de página ----
+  const totalPaginas = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPaginas; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    doc.text(
+      EMPRESA.razonSocial,
+      margin,
+      doc.internal.pageSize.getHeight() - 20,
+    );
+    doc.text(
+      `Página ${i} de ${totalPaginas}`,
+      pageWidth - margin,
+      doc.internal.pageSize.getHeight() - 20,
+      { align: 'right' },
+    );
+  }
+
+  const nombre = `orden-proveedor-${orden.id ?? 'sin-id'}.pdf`;
   doc.save(nombre);
   return nombre;
 }

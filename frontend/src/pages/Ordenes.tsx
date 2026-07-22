@@ -2,12 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { OrdenCompra, EstadoOrden } from '../types';
-import { PlusCircle, Eye, ShoppingBag, ClipboardList, FileDown } from 'lucide-react';
+import { PlusCircle, Eye, ShoppingBag, ClipboardList, FileDown, Send } from 'lucide-react';
 
 // Carga diferida: jsPDF solo se descarga cuando el usuario pide el PDF.
 async function descargarPdf(orden: OrdenCompra) {
   const { descargarOrdenPdf } = await import('../utils/ordenPdf');
   descargarOrdenPdf(orden);
+}
+
+async function descargarPdfProveedor(orden: OrdenCompra) {
+  const { descargarOrdenProveedorPdf } = await import('../utils/ordenPdf');
+  descargarOrdenProveedorPdf(orden);
 }
 
 const ESTADO_CONFIG: Record<EstadoOrden, { label: string; bg: string; text: string }> = {
@@ -146,9 +151,16 @@ function TablaOrdenes({ ordenes }: { ordenes: OrdenCompra[] }) {
                     <button
                       onClick={() => descargarPdf(orden)}
                       className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 font-medium"
-                      title="Descargar orden en PDF"
+                      title="PDF interno (con costos y estados)"
                     >
                       <FileDown size={15} /> PDF
+                    </button>
+                    <button
+                      onClick={() => descargarPdfProveedor(orden)}
+                      className="flex items-center gap-1 text-sm text-green-700 hover:text-green-900 font-medium"
+                      title="Orden limpia para enviar al proveedor"
+                    >
+                      <Send size={15} /> Proveedor
                     </button>
                   </div>
                 </td>
