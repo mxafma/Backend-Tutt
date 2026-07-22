@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { OrdenCompra, EstadoOrden } from '../types';
-import { ArrowLeft, ShoppingBag, CheckCircle, XCircle, Pencil, FileDown, Send } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, CheckCircle, XCircle, Pencil, FileDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const ESTADO_CONFIG: Record<EstadoOrden, { label: string; bg: string; text: string }> = {
@@ -102,23 +102,13 @@ export default function OrdenDetalle() {
         </div>
         <button
           onClick={async () => {
-            const { descargarOrdenPdf } = await import('../utils/ordenPdf');
-            descargarOrdenPdf(orden);
-          }}
-          className="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 font-semibold text-sm transition-colors"
-          title="PDF interno (con costos y estados)"
-        >
-          <FileDown size={16} /> PDF interno
-        </button>
-        <button
-          onClick={async () => {
             const { descargarOrdenProveedorPdf } = await import('../utils/ordenPdf');
             descargarOrdenProveedorPdf(orden);
           }}
           className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold text-sm transition-colors"
-          title="Orden limpia para enviar al proveedor"
+          title="Descargar orden en PDF"
         >
-          <Send size={16} /> Orden proveedor
+          <FileDown size={16} /> PDF
         </button>
         <span
           className={`px-3 py-1.5 rounded-full text-sm font-semibold ${estadoConf.bg} ${estadoConf.text}`}
